@@ -1046,23 +1046,23 @@ function groupMultiplacedSearchResults() {
         .toLocaleLowerCase();
     }
     function scheduleGrouping() {
-      // Allow Zendesk to complete its current render/state update first.
-      if (updateScheduled) return;
-      updateScheduled = true;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          updateScheduled = false;
-          const autocomplete = document.querySelector(
-            'zd-autocomplete[role="listbox"]'
-          );
-          if (!autocomplete) return;
-          if (autocomplete !== activeAutocomplete) {
-            attachToAutocomplete(autocomplete);
-          }
-          groupCurrentLiveResults(autocomplete);
-        });
-      });
-    }
+    // MutationObserver callbacks run before the browser paints, so regroup
+    // immediately. Delaying with requestAnimationFrame allows Zendesk's
+    // duplicate placement to become briefly visible and causes flicker.
+    if (updateScheduled) return;
+    updateScheduled = true;
+    queueMicrotask(() => {
+      updateScheduled = false;
+      const autocomplete = document.querySelector(
+        'zd-autocomplete[role="listbox"]'
+      );
+      if (!autocomplete) return;
+      if (autocomplete !== activeAutocomplete) {
+        attachToAutocomplete(autocomplete);
+      }
+      groupCurrentLiveResults(autocomplete);
+    });
+  }
     function groupCurrentLiveResults(autocomplete) {
       if (!autocomplete) return;
       // Use textContent rather than innerText so already-hidden duplicate
@@ -1158,17 +1158,6 @@ function groupMultiplacedSearchResults() {
         subtree: true,
         characterData: true,
       });
-      // Hover/focus can cause Zendesk to update selection state without
-      // necessarily replacing the result structure.
-      autocomplete.addEventListener(
-        "pointerover",
-        scheduleGrouping,
-        { passive: true }
-      );
-      autocomplete.addEventListener(
-        "focusin",
-        scheduleGrouping
-      );
       scheduleGrouping();
     }
     // Zendesk creates the live autocomplete outside the search form and can
@@ -1195,10 +1184,6 @@ function groupMultiplacedSearchResults() {
     if (instantSearchInput) {
       instantSearchInput.addEventListener(
         "input",
-        scheduleGrouping
-      );
-      instantSearchInput.addEventListener(
-        "keydown",
         scheduleGrouping
       );
     }
