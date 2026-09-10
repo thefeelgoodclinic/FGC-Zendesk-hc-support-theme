@@ -1033,270 +1033,657 @@ function groupMultiplacedSearchResults() {
 }
   
   // ============================================
-  // GROUP MULTIPLACED LIVE SEARCH RESULTS
-  // ============================================
-  function groupMultiplacedLiveSearchResults() {
-    let activeAutocomplete = null;
-    let autocompleteObserver = null;
-    let updateScheduled = false;
-    let keyboardSkipInProgress = false;
-    // Normalise result text so differences in whitespace or capitalisation
-    // do not prevent two placements of the same article being matched.
-    function normaliseText(value) {
-      return (value || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLocaleLowerCase();
-    }
-    // Zendesk's instant-search input remains the controller for native
-    // autocomplete behaviour, including keyboard selection and navigation.
-    function getInstantSearchInput() {
-      return document.querySelector(
-        'form[data-search][data-instant="true"] input[type="search"]'
-      );
-    }
-    // Reapply grouping whenever Zendesk changes the live-search results.
-    //
-    // MutationObserver callbacks run before the browser paints, so regroup
-    // in the current microtask cycle. Delaying with requestAnimationFrame
-    // allows a hidden duplicate to become briefly visible and causes flicker.
-    function scheduleGrouping() {
-      if (updateScheduled) return;
-      updateScheduled = true;
-      queueMicrotask(() => {
-        updateScheduled = false;
-        const autocomplete = document.querySelector(
-          'zd-autocomplete[role="listbox"]'
-        );
-        if (!autocomplete) return;
-        // Zendesk can replace the entire autocomplete component as the query
-        // changes, so attach to the new component if required.
-        if (autocomplete !== activeAutocomplete) {
-          attachToAutocomplete(autocomplete);
-        }
-        groupCurrentLiveResults(autocomplete);
-      });
-    }
-    function groupCurrentLiveResults(autocomplete) {
-      if (!autocomplete) return;
-      // Use textContent rather than innerText so results already hidden with
-      // display:none remain readable and can still participate in grouping.
-      const resultItems = Array.from(autocomplete.children).filter((item) => {
-        return normaliseText(item.textContent);
-      });
-      if (resultItems.length < 2) return;
-      const groupedResults = new Map();
-      resultItems.forEach((item) => {
-        const lines = (item.textContent || "")
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean);
-        if (!lines.length) return;
-        // Instant Search matches article titles, so the first rendered line
-        // provides the logical article title used for grouping placements.
-        const title = normaliseText(lines[0]);
-        if (!title) return;
-        if (!groupedResults.has(title)) {
-          // Keep the first placement Zendesk returned as the visible result.
-          // This preserves Zendesk's own result ranking and click destination.
-          groupedResults.set(title, {
-            item,
-            additionalPlacements: 0,
-          });
-          // Ensure the primary placement is visible if Zendesk has recycled
-          // an existing result element.
-          item.classList.remove("fgc-live-search-duplicate");
-          return;
-        }
-        const primaryResult = groupedResults.get(title);
-        primaryResult.additionalPlacements += 1;
-        // Do not remove or reorder Zendesk's result nodes. Hide duplicate
-        // placements only at the presentation layer so Zendesk retains its
-        // own underlying autocomplete structure and behaviour.
-        //
-        // An already-hidden result remains hidden throughout recalculation,
-        // preventing the duplicate-row flicker seen during earlier testing.
-        item.classList.add("fgc-live-search-duplicate");
-      });
-      groupedResults.forEach(({ item, additionalPlacements }) => {
-        const oldBreadcrumb = item.querySelector(
-          ".fgc-live-search-primary-breadcrumb"
-        );
-        // If this result is no longer duplicated after Zendesk refreshes the
-        // suggestions, remove any previous additional-placement indicator.
-        if (!additionalPlacements) {
-          if (oldBreadcrumb) {
-            oldBreadcrumb.classList.remove(
-              "fgc-live-search-primary-breadcrumb"
-            );
-            oldBreadcrumb.removeAttribute(
-              "data-additional-placements"
-            );
-          }
-          return;
-        }
-        const lines = (item.textContent || "")
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean);
-        if (lines.length < 2) return;
-        const breadcrumbText = lines[1];
-        // Reuse the previously identified breadcrumb wherever possible.
-        let breadcrumbElement = oldBreadcrumb;
-        if (!breadcrumbElement) {
-          // Locate the smallest element containing only the breadcrumb text.
-          // This avoids depending unnecessarily on Zendesk's internal
-          // autocomplete child-element names.
-          breadcrumbElement = Array.from(
-            item.querySelectorAll("*")
-          ).find((element) => {
-            return (
-              element.children.length === 0 &&
-              normaliseText(element.textContent) ===
-                normaliseText(breadcrumbText)
-            );
-          });
-        }
-        if (!breadcrumbElement) return;
-        // Store the number of additional accessible placements as data rather
-        // than inserting another element into Zendesk's managed component.
-        // CSS renders this value as +1, +2, etc. after the breadcrumb.
-        breadcrumbElement.classList.add(
-          "fgc-live-search-primary-breadcrumb"
-        );
-        breadcrumbElement.setAttribute(
-          "data-additional-placements",
-          additionalPlacements
-        );
-      });
-    }
-    // Zendesk's keyboard navigation still counts hidden result nodes.
-    // If ArrowUp/ArrowDown selects a duplicate placement that we have hidden,
-    // send the same navigation command once more so Zendesk advances to the
-    // next visible result.
-    //
-    // Zendesk continues to own selection, aria-selected state, Enter
-    // behaviour and the final click destination.
-    function skipHiddenSelectedResult(direction) {
-      if (keyboardSkipInProgress) return;
-      const autocomplete = document.querySelector(
-        'zd-autocomplete[role="listbox"]'
-      );
-      const instantSearchInput = getInstantSearchInput();
-      if (!autocomplete || !instantSearchInput) return;
-      const selectedItem = autocomplete.querySelector(
-        '[role="option"][aria-selected="true"]'
-      );
-      // Nothing to do unless Zendesk has selected one of our hidden
-      // multiplacement rows.
-      if (
-        !selectedItem ||
-        !selectedItem.classList.contains("fgc-live-search-duplicate")
-      ) {
-        return;
-      }
-      keyboardSkipInProgress = true;
-      // Ask Zendesk to perform another normal navigation step rather than
-      // changing aria-selected or tabindex ourselves.
-      instantSearchInput.dispatchEvent(
-        new KeyboardEvent("keydown", {
-          key: direction,
-          code: direction,
-          bubbles: true,
-          cancelable: true,
-        })
-      );
-      queueMicrotask(() => {
-        keyboardSkipInProgress = false;
-        const nextSelectedItem = autocomplete.querySelector(
-          '[role="option"][aria-selected="true"]'
-        );
-        // More than two placements of the same article may produce consecutive
-        // hidden results. Continue until Zendesk reaches a visible result.
-        if (
-          nextSelectedItem &&
-          nextSelectedItem.classList.contains(
-            "fgc-live-search-duplicate"
-          )
-        ) {
-          skipHiddenSelectedResult(direction);
-        }
-      });
-    }
-    function attachToAutocomplete(autocomplete) {
-      if (!autocomplete) return;
-      // Only observe the currently active Zendesk autocomplete component.
-      if (autocompleteObserver) {
-        autocompleteObserver.disconnect();
-      }
-      activeAutocomplete = autocomplete;
-      // Watch structural/text changes as Zendesk redraws its suggestions.
-      //
-      // Also watch aria-selected specifically. Unlike observing every
-      // attribute, this cannot be triggered by our grouping classes/data
-      // attributes and lets us detect Zendesk's keyboard selection state.
-      autocompleteObserver = new MutationObserver(() => {
-        scheduleGrouping();
-      });
-      autocompleteObserver.observe(autocomplete, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-        attributeFilter: ["aria-selected"],
-      });
-      scheduleGrouping();
-    }
-    // Zendesk creates the live autocomplete outside the search form and may
-    // replace the whole component as search state changes. Watch for that
-    // lifecycle event and attach our targeted observer to the new component.
-    const autocompleteContainerObserver = new MutationObserver(() => {
-      const autocomplete = document.querySelector(
-        'zd-autocomplete[role="listbox"]'
-      );
-      if (
-        autocomplete &&
-        autocomplete !== activeAutocomplete
-      ) {
-        attachToAutocomplete(autocomplete);
-      }
-    });
-    autocompleteContainerObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-    const instantSearchInput = getInstantSearchInput();
-    if (instantSearchInput) {
-      // A changed query may cause Zendesk to generate a new set of results.
-      instantSearchInput.addEventListener(
-        "input",
-        scheduleGrouping
-      );
-      // Allow Zendesk to handle ArrowUp/ArrowDown normally first. Then inspect
-      // its aria-selected state and skip again only if it landed on a duplicate
-      // placement that is hidden from view.
-      instantSearchInput.addEventListener("keydown", (event) => {
-        if (
-          keyboardSkipInProgress ||
-          (event.key !== "ArrowDown" &&
-            event.key !== "ArrowUp")
-        ) {
-          return;
-        }
-        const direction = event.key;
-        queueMicrotask(() => {
-          skipHiddenSelectedResult(direction);
-        });
-      });
-    }
-    // The autocomplete may already exist when this function initializes.
-    const existingAutocomplete = document.querySelector(
-      'zd-autocomplete[role="listbox"]'
-    );
-    if (existingAutocomplete) {
-      attachToAutocomplete(existingAutocomplete);
-    }
+
+// GROUP MULTIPLACED LIVE SEARCH RESULTS
+
+// ============================================
+
+function groupMultiplacedLiveSearchResults() {
+
+  let activeAutocomplete = null;
+
+  let autocompleteObserver = null;
+
+  let updateScheduled = false;
+
+  let keyboardIndex = -1;
+
+  // Normalise result text so differences in whitespace or capitalisation
+
+  // do not prevent placements of the same article being matched.
+
+  function normaliseText(value) {
+
+    return (value || "")
+
+      .replace(/\s+/g, " ")
+
+      .trim()
+
+      .toLocaleLowerCase();
+
   }
+
+  function getAutocomplete() {
+
+    return document.querySelector(
+
+      'zd-autocomplete[role="listbox"]'
+
+    );
+
+  }
+
+  function getInstantSearchInput() {
+
+    return document.querySelector(
+
+      'form[data-search][data-instant="true"] input[type="search"]'
+
+    );
+
+  }
+
+  // Return only results that remain visible after multiplacement grouping.
+
+  function getVisibleOptions(autocomplete) {
+
+    if (!autocomplete) return [];
+
+    return Array.from(
+
+      autocomplete.querySelectorAll(':scope > [role="option"]')
+
+    ).filter((item) => {
+
+      return !item.classList.contains("fgc-live-search-duplicate");
+
+    });
+
+  }
+
+  // Clear the keyboard selection state without changing focus.
+
+  //
+
+  // The search input remains focused at all times so typing continues to
+
+  // behave exactly as it does in Zendesk's native Instant Search.
+
+  function clearKeyboardSelection(autocomplete) {
+
+    if (!autocomplete) return;
+
+    autocomplete
+
+      .querySelectorAll(':scope > [role="option"][aria-selected="true"]')
+
+      .forEach((item) => {
+
+        item.setAttribute("aria-selected", "false");
+
+      });
+
+    keyboardIndex = -1;
+
+  }
+
+  // Select one of the visible results using Zendesk's existing
+
+  // aria-selected state. This retains the native highlighted appearance
+
+  // without moving focus onto the result itself.
+
+  function selectVisibleOption(autocomplete, index) {
+
+    const visibleOptions = getVisibleOptions(autocomplete);
+
+    if (!visibleOptions.length) {
+
+      keyboardIndex = -1;
+
+      return;
+
+    }
+
+    // Clamp rather than wrap. Pressing down at the final result or up at
+
+    // the first result leaves selection where it is.
+
+    const safeIndex = Math.max(
+
+      0,
+
+      Math.min(index, visibleOptions.length - 1)
+
+    );
+
+    Array.from(
+
+      autocomplete.querySelectorAll(':scope > [role="option"]')
+
+    ).forEach((item) => {
+
+      item.setAttribute(
+
+        "aria-selected",
+
+        item === visibleOptions[safeIndex] ? "true" : "false"
+
+      );
+
+    });
+
+    keyboardIndex = safeIndex;
+
+  }
+
+  // Reapply grouping whenever Zendesk changes its autocomplete results.
+
+  //
+
+  // MutationObserver callbacks occur before the browser's next paint.
+
+  // Using a microtask here prevents a duplicate placement becoming briefly
+
+  // visible during Zendesk redraws.
+
+  function scheduleGrouping() {
+
+    if (updateScheduled) return;
+
+    updateScheduled = true;
+
+    queueMicrotask(() => {
+
+      updateScheduled = false;
+
+      const autocomplete = getAutocomplete();
+
+      if (!autocomplete) {
+
+        activeAutocomplete = null;
+
+        keyboardIndex = -1;
+
+        return;
+
+      }
+
+      if (autocomplete !== activeAutocomplete) {
+
+        attachToAutocomplete(autocomplete);
+
+      }
+
+      groupCurrentLiveResults(autocomplete);
+
+    });
+
+  }
+
+  function groupCurrentLiveResults(autocomplete) {
+
+    if (!autocomplete) return;
+
+    // textContent is intentional. Unlike innerText, it still reads results
+
+    // already hidden with display:none, allowing them to remain part of the
+
+    // grouping calculation without briefly unhiding them.
+
+    const resultItems = Array.from(autocomplete.children).filter((item) => {
+
+      return normaliseText(item.textContent);
+
+    });
+
+    if (resultItems.length < 2) return;
+
+    const groupedResults = new Map();
+
+    resultItems.forEach((item) => {
+
+      const lines = (item.textContent || "")
+
+        .split("\n")
+
+        .map((line) => line.trim())
+
+        .filter(Boolean);
+
+      if (!lines.length) return;
+
+      // Instant Search is title-based, so the first rendered line provides
+
+      // the logical article title used to identify duplicate placements.
+
+      const title = normaliseText(lines[0]);
+
+      if (!title) return;
+
+      if (!groupedResults.has(title)) {
+
+        // Preserve the first placement Zendesk ranked and returned.
+
+        // Its original click destination therefore remains unchanged.
+
+        groupedResults.set(title, {
+
+          item,
+
+          additionalPlacements: 0,
+
+        });
+
+        item.classList.remove("fgc-live-search-duplicate");
+
+        return;
+
+      }
+
+      const primaryResult = groupedResults.get(title);
+
+      primaryResult.additionalPlacements += 1;
+
+      // Never remove or reorder Zendesk's result nodes.
+
+      // Duplicate placements are hidden only at the presentation layer.
+
+      item.classList.add("fgc-live-search-duplicate");
+
+      // A duplicate must never retain a selected state after regrouping.
+
+      item.setAttribute("aria-selected", "false");
+
+    });
+
+    groupedResults.forEach(({ item, additionalPlacements }) => {
+
+      const oldBreadcrumb = item.querySelector(
+
+        ".fgc-live-search-primary-breadcrumb"
+
+      );
+
+      // Remove a stale placement count if this article is no longer
+
+      // duplicated in the current autocomplete result set.
+
+      if (!additionalPlacements) {
+
+        if (oldBreadcrumb) {
+
+          oldBreadcrumb.classList.remove(
+
+            "fgc-live-search-primary-breadcrumb"
+
+          );
+
+          oldBreadcrumb.removeAttribute(
+
+            "data-additional-placements"
+
+          );
+
+        }
+
+        return;
+
+      }
+
+      const lines = (item.textContent || "")
+
+        .split("\n")
+
+        .map((line) => line.trim())
+
+        .filter(Boolean);
+
+      if (lines.length < 2) return;
+
+      const breadcrumbText = lines[1];
+
+      // Reuse the breadcrumb previously identified wherever possible.
+
+      let breadcrumbElement = oldBreadcrumb;
+
+      if (!breadcrumbElement) {
+
+        // Find the smallest element containing only the breadcrumb text.
+
+        // This deliberately avoids relying on undocumented internal Zendesk
+
+        // child-element names wherever possible.
+
+        breadcrumbElement = Array.from(
+
+          item.querySelectorAll("*")
+
+        ).find((element) => {
+
+          return (
+
+            element.children.length === 0 &&
+
+            normaliseText(element.textContent) ===
+
+              normaliseText(breadcrumbText)
+
+          );
+
+        });
+
+      }
+
+      if (!breadcrumbElement) return;
+
+      // CSS renders this data value as +1, +2, etc.
+
+      // No extra DOM element is inserted into Zendesk's managed result.
+
+      breadcrumbElement.classList.add(
+
+        "fgc-live-search-primary-breadcrumb"
+
+      );
+
+      breadcrumbElement.setAttribute(
+
+        "data-additional-placements",
+
+        additionalPlacements
+
+      );
+
+    });
+
+    // A changed search query can alter both the number and ordering of
+
+    // visible results. Reset keyboard position rather than carrying an
+
+    // obsolete index into the new result set.
+
+    if (
+
+      keyboardIndex >= getVisibleOptions(autocomplete).length
+
+    ) {
+
+      keyboardIndex = -1;
+
+    }
+
+  }
+
+  function attachToAutocomplete(autocomplete) {
+
+    if (!autocomplete) return;
+
+    if (autocompleteObserver) {
+
+      autocompleteObserver.disconnect();
+
+    }
+
+    activeAutocomplete = autocomplete;
+
+    keyboardIndex = -1;
+
+    // Watch only structural and text changes from Zendesk.
+
+    //
+
+    // Do not observe attributes because this function intentionally changes
+
+    // classes, data attributes and aria-selected during keyboard navigation.
+
+    autocompleteObserver = new MutationObserver(() => {
+
+      scheduleGrouping();
+
+    });
+
+    autocompleteObserver.observe(autocomplete, {
+
+      childList: true,
+
+      subtree: true,
+
+      characterData: true,
+
+    });
+
+    // Returning to the mouse hands selection behaviour straight back to
+
+    // Zendesk. We only own selection while the keyboard is being used.
+
+    autocomplete.addEventListener(
+
+      "pointermove",
+
+      () => {
+
+        keyboardIndex = -1;
+
+      },
+
+      { passive: true }
+
+    );
+
+    scheduleGrouping();
+
+  }
+
+  // Zendesk creates its autocomplete outside the search form and may replace
+
+  // the entire component while the query changes. Watch for that lifecycle
+
+  // event and attach to whichever autocomplete is currently active.
+
+  const autocompleteContainerObserver = new MutationObserver(() => {
+
+    const autocomplete = getAutocomplete();
+
+    if (
+
+      autocomplete &&
+
+      autocomplete !== activeAutocomplete
+
+    ) {
+
+      attachToAutocomplete(autocomplete);
+
+    }
+
+  });
+
+  autocompleteContainerObserver.observe(document.body, {
+
+    childList: true,
+
+    subtree: true,
+
+  });
+
+  const instantSearchInput = getInstantSearchInput();
+
+  if (instantSearchInput) {
+
+    // Query changes invalidate any existing keyboard position.
+
+    instantSearchInput.addEventListener("input", () => {
+
+      keyboardIndex = -1;
+
+      scheduleGrouping();
+
+    });
+
+    // Own only the keyboard-navigation keys required to move through the
+
+    // visible deduplicated result set.
+
+    //
+
+    // Capture phase is intentional: it prevents Zendesk's native keyboard
+
+    // controller from stepping through the duplicate result nodes that we
+
+    // have hidden.
+
+    instantSearchInput.addEventListener(
+
+      "keydown",
+
+      (event) => {
+
+        const autocomplete = getAutocomplete();
+
+        if (!autocomplete) return;
+
+        const visibleOptions = getVisibleOptions(autocomplete);
+
+        if (!visibleOptions.length) return;
+
+        switch (event.key) {
+
+          case "ArrowDown":
+
+            event.preventDefault();
+
+            event.stopImmediatePropagation();
+
+            if (keyboardIndex < 0) {
+
+              selectVisibleOption(autocomplete, 0);
+
+            } else {
+
+              selectVisibleOption(
+
+                autocomplete,
+
+                keyboardIndex + 1
+
+              );
+
+            }
+
+            break;
+
+          case "ArrowUp":
+
+            event.preventDefault();
+
+            event.stopImmediatePropagation();
+
+            if (keyboardIndex < 0) {
+
+              selectVisibleOption(
+
+                autocomplete,
+
+                visibleOptions.length - 1
+
+              );
+
+            } else {
+
+              selectVisibleOption(
+
+                autocomplete,
+
+                keyboardIndex - 1
+
+              );
+
+            }
+
+            break;
+
+          case "Home":
+
+            if (keyboardIndex < 0) return;
+
+            event.preventDefault();
+
+            event.stopImmediatePropagation();
+
+            selectVisibleOption(autocomplete, 0);
+
+            break;
+
+          case "End":
+
+            if (keyboardIndex < 0) return;
+
+            event.preventDefault();
+
+            event.stopImmediatePropagation();
+
+            selectVisibleOption(
+
+              autocomplete,
+
+              visibleOptions.length - 1
+
+            );
+
+            break;
+
+          case "Enter":
+
+            // With no autocomplete option selected, leave Enter completely
+
+            // alone so Zendesk performs its normal full Help Center search.
+
+            if (keyboardIndex < 0) return;
+
+            const selectedOption =
+
+              visibleOptions[keyboardIndex];
+
+            if (!selectedOption) return;
+
+            event.preventDefault();
+
+            event.stopImmediatePropagation();
+
+            // Prefer the actual link inside the result. Fall back to clicking
+
+            // the option itself if Zendesk's markup changes.
+
+            const selectedLink =
+
+              selectedOption.querySelector("a[href]");
+
+            if (selectedLink) {
+
+              selectedLink.click();
+
+            } else {
+
+              selectedOption.click();
+            }
+            break;
+          case "Escape":
+            // Zendesk retains ownership of Escape/closing behaviour.
+            keyboardIndex = -1;
+            break;
+        }
+      },
+      true
+    );
+  }
+  // The autocomplete may already exist when this code initializes.
+  const existingAutocomplete = getAutocomplete();
+  if (existingAutocomplete) {
+    attachToAutocomplete(existingAutocomplete);
+  }
+}
   
   // One DOMContentLoaded to rule them all
   document.addEventListener("DOMContentLoaded", () => {
