@@ -302,6 +302,61 @@
     }
   }
 
+  // ============================================
+  // TEAM KB RESTRICTED ARTICLE PADLOCKS
+  // ============================================
+  async function updateTeamArticlePadlocks() {
+    // Team brand only. Support retains Zendesk's native padlock behaviour.
+    if (detectBrand() !== "team") return;
+    // These are Zendesk's built-in audience levels for this Help Center.
+    // We treat both as normal Team KB visibility and do not show a padlock.
+    const BUILT_IN_SEGMENT_IDS = new Set([
+      1964427, // Signed-in users
+      1964387, // Agents and admins
+    ]);
+    const lockIcons = Array.from(
+      document.querySelectorAll(".icon-lock")
+    );
+    if (!lockIcons.length) return;
+    await Promise.all(
+      lockIcons.map(async (lockIcon) => {
+        const articleItem = lockIcon.closest(".article-list-item");
+        if (!articleItem) return;
+        const articleLink = articleItem.querySelector(
+          'a[href*="/articles/"]'
+        );
+        const href = articleLink?.getAttribute("href") || "";
+        const match = href.match(/\/articles\/(\d+)/);
+        if (!match) return;
+        const articleId = match[1];
+        try {
+          const response = await fetch(
+            `/api/v2/help_center/en-au/articles/${articleId}.json`
+          );
+          if (!response.ok) return;
+          const data = await response.json();
+          const segmentId = data.article?.user_segment_id;
+          // Remove the native Zendesk padlock when the article is:
+          // - visible to everyone, or
+          // - restricted only to one of Zendesk's built-in Team audiences.
+          //
+          // Custom user segments retain the padlock.
+          if (
+            segmentId == null ||
+            BUILT_IN_SEGMENT_IDS.has(segmentId)
+          ) {
+            lockIcon.remove();
+          }
+        } catch (error) {
+          console.error(
+            `Error checking article permissions for ${articleId}:`,
+            error
+          );
+        }
+      })
+    );
+  }
+
   // CSRF helpers (deduped)
   async function fetchCSRFToken() {
     try {
@@ -1714,6 +1769,9 @@ function groupMultiplacedSearchResults() {
     const brand = detectBrand();
     
     if (brand === 'team') {
+      // Only show padlocks for custom Restricted article permissions
+      updateTeamArticlePadlocks();
+      
       // Group duplicate article placements in Team KB search results
       groupMultiplacedSearchResults();
 
