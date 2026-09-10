@@ -289,15 +289,15 @@
     const hostname = window.location.hostname;
     
     if (hostname.includes('team.thefeelgoodclinic.com')) {
-      console.log("🏢 Detected: Team brand");
+      // console.log("🏢 Detected: Team brand");
       return 'team';
     } else if (hostname.includes('support.thefeelgoodclinic.com')) {
-      console.log("🏥 Detected: Support brand");
+      // console.log("🏥 Detected: Support brand");
       return 'support';
     } else {
       // Default fallback - check for URL patterns
       const isTeam = window.location.href.includes('/community/');
-      console.log(isTeam ? "🏢 Detected: Team brand (by URL)" : "🏥 Detected: Support brand (default)");
+      // console.log(isTeam ? "🏢 Detected: Team brand (by URL)" : "🏥 Detected: Support brand (default)");
       return isTeam ? 'team' : 'support';
     }
   }
@@ -516,7 +516,7 @@
 
   async function fetchFAQSectionsByID(categoryId) {
     try {
-      console.log("🚀 Fetching FAQ sections directly by category ID:", categoryId);
+      // console.log("🚀 Fetching FAQ sections directly by category ID:", categoryId);
       
       // Fetch all sections and filter by category ID
       const allSections = await fetchAllSections();
@@ -524,7 +524,7 @@
         section.category_id === parseInt(categoryId)
       );
       
-      console.log("✅ Found FAQ sections:", faqSections.length);
+      // console.log("✅ Found FAQ sections:", faqSections.length);
       return faqSections;
       
     } catch (error) {
@@ -535,7 +535,7 @@
   
   async function fetchFAQSectionsDirectly(categoryId) {
     try {
-      console.log("⚡ Fetching FAQ sections directly from category endpoint:", categoryId);
+      // console.log("⚡ Fetching FAQ sections directly from category endpoint:", categoryId);
       
       // This endpoint gets sections directly from a specific category
       const apiUrl = `/api/v2/help_center/en-au/categories/${categoryId}/sections.json`;
@@ -554,7 +554,7 @@
       const data = await response.json();
       const sections = data.sections || [];
       
-      console.log("✅ Found FAQ sections (direct):", sections.length);
+      // console.log("✅ Found FAQ sections (direct):", sections.length);
       return sections;
       
     } catch (error) {
@@ -1479,7 +1479,7 @@ function groupMultiplacedSearchResults() {
         );
         element.addEventListener("keyup", (event) => {
           // keep console.log("escape") behavior
-          console.log("escape");
+          // console.log("escape");
           if (event.keyCode === ESCAPE) closeNavigation(toggle, element);
         });
       });
@@ -1788,14 +1788,14 @@ function groupMultiplacedSearchResults() {
         
         if (brand === 'team') {
           // TEAM BRAND: Load articles and top tags
-          console.log("🚀 Loading content for Team brand...");
+          // console.log("🚀 Loading content for Team brand...");
           
           // Only load recent articles if the container exists
           const recentArticlesContainer = document.getElementById('recent-articles');
           if (recentArticlesContainer) {
             const articles = await fetchRecentlyUpdatedArticles(5);
             if (articles && articles.length > 0) {
-              console.log("✅ Displaying recent articles:", articles.length);
+              // console.log("✅ Displaying recent articles:", articles.length);
               displayRecentArticles("recent-articles", articles);
             } else {
               recentArticlesContainer.innerHTML = "<p>No recently updated articles found.</p>";
@@ -1808,17 +1808,17 @@ function groupMultiplacedSearchResults() {
             try {
               const topTags = await fetchTopContentTags(3);
               if (topTags && topTags.length > 0) {
-                console.log("✅ Displaying top tags:", topTags.length);
+                // console.log("✅ Displaying top tags:", topTags.length);
                 displayTopTagLinks("top-tags", topTags);
               }
             } catch (error) {
-              console.log("⚠️ Top tags not available:", error);
+              // console.log("⚠️ Top tags not available:", error);
             }
           }
           
         } else {
           // SUPPORT BRAND: Load FAQ sections
-          console.log("🚀 Loading content for Support brand...");
+          // console.log("🚀 Loading content for Support brand...");
           
           // Only load FAQ sections if the container exists
           const recentArticlesContainer = document.getElementById('recent-articles');
@@ -1828,10 +1828,10 @@ function groupMultiplacedSearchResults() {
             const faqSections = await fetchFAQSectionsDirectly(FAQ_CATEGORY_ID);
             
             if (faqSections && faqSections.length > 0) {
-              console.log("✅ Displaying FAQ sections:", faqSections.length);
+              // console.log("✅ Displaying FAQ sections:", faqSections.length);
               displayFAQSections("recent-articles", faqSections);
             } else {
-              console.log("⚠️ No FAQ sections found, trying fallback method");
+              // console.log("⚠️ No FAQ sections found, trying fallback method");
               const fallbackSections = await fetchFAQSectionsByID(FAQ_CATEGORY_ID);
               if (fallbackSections && fallbackSections.length > 0) {
                 displayFAQSections("recent-articles", fallbackSections);
@@ -1894,9 +1894,9 @@ function groupMultiplacedSearchResults() {
     })();
       
       // Also run periodically to catch any reverts
-      setInterval(swapRecentActivityOrder, 1000);
+      // setInterval(swapRecentActivityOrder, 1000);
       
-      console.log('Persistent swap monitoring active');
+      // console.log('Persistent swap monitoring active');
     })();
 
   }); // This closes the main DOMContentLoaded event listener from line 863 
