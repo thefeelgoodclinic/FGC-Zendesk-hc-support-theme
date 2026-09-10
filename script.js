@@ -941,6 +941,70 @@ async function addTopicsToFeaturedPosts() {
     }
   }
 
+  // ============================================
+  // GROUP MULTIPLACED KNOWLEDGE BASE SEARCH RESULTS
+  // ============================================
+  function groupMultiplacedSearchResults() {
+    const resultsList = document.querySelector(".search-results-list");
+    if (!resultsList) return;
+    const resultItems = Array.from(
+      resultsList.querySelectorAll(":scope > .fgc-search-result")
+    );
+    if (resultItems.length < 2) return;
+    const groupedResults = new Map();
+    resultItems.forEach((item) => {
+      const type = (item.dataset.resultType || "").toLowerCase();
+      const title = (item.dataset.resultTitle || "").trim();
+      // Only group knowledge base articles.
+      if (type !== "article" || !title) return;
+      const description = (
+        item.querySelector(".search-result-description")?.textContent || ""
+      )
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLocaleLowerCase();
+      // Match title plus the opening content, protecting against
+      // unrelated articles that happen to share the same title.
+      const groupKey =
+        `${title.toLocaleLowerCase()}::${description.substring(0, 80)}`;
+      if (!groupedResults.has(groupKey)) {
+        groupedResults.set(groupKey, item);
+        return;
+      }
+      const primaryItem = groupedResults.get(groupKey);
+      const primaryLocations = primaryItem.querySelector(
+        ".fgc-search-result-locations"
+      );
+      const duplicateLocation = item.querySelector(
+        ".fgc-search-result-location"
+      );
+      if (!primaryLocations || !duplicateLocation) return;
+      const duplicateLocationText = duplicateLocation.textContent
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLocaleLowerCase();
+      const existingLocations = Array.from(
+        primaryLocations.querySelectorAll(".fgc-search-result-location")
+      );
+      const locationAlreadyExists = existingLocations.some((location) => {
+        return (
+          location.textContent
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLocaleLowerCase() === duplicateLocationText
+        );
+      });
+      if (!locationAlreadyExists) {
+        const duplicateNav = duplicateLocation.closest("nav");
+        if (duplicateNav) {
+          primaryLocations.appendChild(duplicateNav.cloneNode(true));
+        }
+      }
+      // Keep one title and excerpt; remove the duplicate result.
+      item.remove();
+    });
+  }
+  
   // One DOMContentLoaded to rule them all
   document.addEventListener("DOMContentLoaded", () => {
     // Reading time
@@ -1287,6 +1351,7 @@ async function addTopicsToFeaturedPosts() {
     const brand = detectBrand();
     
     if (brand === 'team') {
+      groupMultiplacedSearchResults();
       // Only run on team brand and if we're on a community topics page
       const topicsList = document.querySelector('.topics-list');
       if (topicsList) {
