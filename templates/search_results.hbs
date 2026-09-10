@@ -169,7 +169,11 @@
       {{#if results}}
         <ul class="search-results-list">
           {{#each results}}
-            <li>
+            <li
+              class="fgc-search-result"
+              data-result-type="{{type}}"
+              data-result-title="{{title}}"
+            >
               <article>
                 <header>
                   <div class="search-result-title-container">
@@ -217,17 +221,19 @@
                     </div>
                   </div>
                   <div class="search-result-meta-container">
-                    <nav 
-                      {{#is type 'article'}}aria-label='{{t 'article_location_with_title' title=title}}'{{/is}}
-                      {{#is type 'community_post'}}aria-label='{{t 'post_location_with_title' title=title}}'{{/is}}
-                      {{#is type 'external_content_record'}}aria-label='{{t 'external_content_location_with_title' title=title}}'{{/is}}
-                    >
-                      <ol class="breadcrumbs search-result-breadcrumbs">
-                        {{#each path_steps}}
-                          <li><a href="{{url}}" target="{{target}}">{{name}}</a></li>
-                        {{/each}}
-                      </ol>
-                    </nav>
+                    <div class="fgc-search-result-locations">
+                      <nav 
+                        {{#is type 'article'}}aria-label='{{t 'article_location_with_title' title=title}}'{{/is}}
+                        {{#is type 'community_post'}}aria-label='{{t 'post_location_with_title' title=title}}'{{/is}}
+                        {{#is type 'external_content_record'}}aria-label='{{t 'external_content_location_with_title' title=title}}'{{/is}}
+                      >
+                        <ol class="breadcrumbs search-result-breadcrumbs fgc-search-result-location">
+                          {{#each path_steps}}
+                            <li><a href="{{url}}" target="{{target}}">{{name}}</a></li>
+                          {{/each}}
+                        </ol>
+                      </nav>
+                    </div>
                     {{#unless is_external}}
                       <span class="meta-data">{{author.name}}</span>
                     {{/unless}}
