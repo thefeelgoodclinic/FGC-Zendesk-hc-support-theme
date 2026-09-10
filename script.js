@@ -1040,29 +1040,26 @@ function groupMultiplacedSearchResults() {
       'form[data-search][data-instant="true"]'
     );
     if (!searchForm) return;
-    let observedListbox = null;
-    let listboxObserver = null;
     function normaliseText(value) {
       return (value || "")
         .replace(/\s+/g, " ")
         .trim()
         .toLocaleLowerCase();
     }
-    function groupCurrentLiveResults(listbox) {
-      const resultItems = Array.from(listbox.children).filter((item) => {
-        return (item.textContent || "").trim().length > 0;
-      });
+    function groupCurrentLiveResults() {
+      // Zendesk renders each instant-search suggestion as its own
+      // zd-autocomplete-multibrand element.
+      const resultItems = Array.from(
+        searchForm.querySelectorAll("zd-autocomplete-multibrand")
+      );
       if (resultItems.length < 2) return;
       const groupedResults = new Map();
       resultItems.forEach((item) => {
-        // The live result contains the article title first, followed by its
-        // placement breadcrumb. Use the first visible line as the title.
-        const visibleLines = (item.innerText || item.textContent || "")
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean);
-        if (!visibleLines.length) return;
-        const title = normaliseText(visibleLines[0]);
+        const titleElement = item.querySelector(
+          "zd-autocomplete-title-multibrand"
+        );
+        if (!titleElement) return;
+        const title = normaliseText(titleElement.textContent);
         if (!title) return;
         if (!groupedResults.has(title)) {
           // Keep the first placement Zendesk returned as the visible result.
@@ -1074,67 +1071,36 @@ function groupMultiplacedSearchResults() {
         }
         const primaryResult = groupedResults.get(title);
         primaryResult.additionalPlacements += 1;
-        // Remove additional placements from the live dropdown. Their existence
-        // is represented by the +x indicator on the first visible placement.
+        // Remove the duplicate placement from the dropdown.
         item.remove();
       });
       groupedResults.forEach(({ item, additionalPlacements }) => {
-        // Remove any previous counter before rebuilding the results.
-        item
+        if (!additionalPlacements) return;
+        const breadcrumbElement = item.querySelector(
+          "zd-autocomplete-breadcrumbs-multibrand"
+        );
+        if (!breadcrumbElement) return;
+        // Remove any previous counter before rebuilding.
+        breadcrumbElement
           .querySelector(".fgc-live-search-placement-count")
           ?.remove();
-        if (!additionalPlacements) return;
-        const visibleLines = (item.innerText || item.textContent || "")
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean);
-        if (visibleLines.length < 2) return;
-        // Find the element containing the breadcrumb text by matching the
-        // second visible line in the result.
-        const breadcrumbText = visibleLines[1];
-        const breadcrumbElement = Array.from(
-          item.querySelectorAll("*")
-        ).find((element) => {
-          return (
-            element.children.length === 0 &&
-            (element.textContent || "").trim() === breadcrumbText
-          );
-        });
-        if (!breadcrumbElement) return;
         const placementCount = document.createElement("span");
         placementCount.className = "fgc-live-search-placement-count";
         placementCount.textContent = ` +${additionalPlacements}`;
         breadcrumbElement.appendChild(placementCount);
       });
     }
-    function watchAutocompleteListbox() {
-      const listbox = searchForm.querySelector('[role="listbox"]');
-      if (!listbox || listbox === observedListbox) return;
-      if (listboxObserver) {
-        listboxObserver.disconnect();
-      }
-      observedListbox = listbox;
-      // Zendesk redraws instant-search suggestions as the user types.
-      // Observe only the autocomplete listbox rather than the whole page.
-      listboxObserver = new MutationObserver(() => {
-        groupCurrentLiveResults(listbox);
-      });
-      listboxObserver.observe(listbox, {
-        childList: true,
-        subtree: true,
-      });
-      groupCurrentLiveResults(listbox);
-    }
-    // Zendesk may create or replace the autocomplete component after the
-    // search field has loaded, so watch the search form for that listbox.
+    // Zendesk recreates the autocomplete suggestions as the user types,
+    // so watch only this search form and regroup whenever its results change.
     const searchObserver = new MutationObserver(() => {
-      watchAutocompleteListbox();
+      groupCurrentLiveResults();
     });
     searchObserver.observe(searchForm, {
       childList: true,
       subtree: true,
     });
-    watchAutocompleteListbox();
+    // Also run once in case suggestions already exist.
+    groupCurrentLiveResults();
   }
   
   // One DOMContentLoaded to rule them all
