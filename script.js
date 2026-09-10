@@ -942,94 +942,108 @@ async function addTopicsToFeaturedPosts() {
   }
 
   // ============================================
-  // GROUP MULTIPLACED KNOWLEDGE BASE SEARCH RESULTS
+  // GROUP MULTIPLACED LIVE SEARCH RESULTS
   // ============================================
-  function groupMultiplacedSearchResults() {
-    const resultsList = document.querySelector(".search-results-list");
-    if (!resultsList) return;
-    const resultItems = Array.from(
-      resultsList.querySelectorAll(":scope > .fgc-search-result")
+  function groupMultiplacedLiveSearchResults() {
+    const searchForm = document.querySelector(
+      'form[role="search"][data-instant="true"]'
     );
-    if (resultItems.length < 2) return;
-    const groupedResults = new Map();
-    resultItems.forEach((item) => {
-      const type = (item.dataset.resultType || "").toLowerCase();
-      const title = (item.dataset.resultTitle || "").trim();
-      // Only group knowledge base articles.
-      // Community posts and external content remain untouched.
-      if (type !== "article" || !title) return;
-      const description = (
-        item.querySelector(".search-result-description")?.textContent || ""
-      )
+    if (!searchForm) return;
+    let observedListbox = null;
+    let listboxObserver = null;
+    function normaliseText(value) {
+      return (value || "")
         .replace(/\s+/g, " ")
         .trim()
         .toLocaleLowerCase();
-      // Multiplaced articles have separate Zendesk article IDs, so there is
-      // no shared article ID available here to use as a grouping key.
-      //
-      // Match the title plus the opening portion of the search excerpt instead.
-      // This protects against accidentally grouping two unrelated articles that
-      // happen to have exactly the same title.
-      const groupKey =
-        `${title.toLocaleLowerCase()}::${description.substring(0, 80)}`;
-      if (!groupedResults.has(groupKey)) {
-        // Keep the first occurrence as the primary visible search result.
-        groupedResults.set(groupKey, item);
-        return;
-      }
-      const primaryItem = groupedResults.get(groupKey);
-      const primaryMetaContainer = primaryItem.querySelector(
-        ".search-result-meta-container"
-      );
-      const duplicateLocation = item.querySelector(
-        ".fgc-search-result-location"
-      );
-      if (!primaryMetaContainer || !duplicateLocation) return;
-      // Compare the complete breadcrumb text before adding another location.
-      // This prevents the same placement being displayed twice.
-      const duplicateLocationText = duplicateLocation.textContent
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLocaleLowerCase();
-      const existingLocations = Array.from(
-        primaryItem.querySelectorAll(".fgc-search-result-location")
-      );
-      const locationAlreadyExists = existingLocations.some((location) => {
-        return (
-          location.textContent
-            .replace(/\s+/g, " ")
-            .trim()
-            .toLocaleLowerCase() === duplicateLocationText
-        );
+    }
+    function groupCurrentLiveResults(listbox) {
+      const resultItems = Array.from(listbox.children).filter((item) => {
+        return (item.textContent || "").trim().length > 0;
       });
-      if (!locationAlreadyExists) {
-        const duplicateNav = duplicateLocation.closest("nav");
-        if (duplicateNav) {
-          // Clone the duplicate result's breadcrumb so all of its original
-          // links remain independently clickable.
-          const clonedNav = duplicateNav.cloneNode(true);
-          clonedNav.classList.add("fgc-additional-search-location");
-          const existingAdditionalLocations = primaryItem.querySelectorAll(
-            ".fgc-additional-search-location"
-          );
-          if (existingAdditionalLocations.length) {
-            // If the article has more than two placements, stack each
-            // additional location beneath the previous one.
-            existingAdditionalLocations[
-              existingAdditionalLocations.length - 1
-            ].insertAdjacentElement("afterend", clonedNav);
-          } else {
-            // Keep the existing first location / author / date row untouched.
-            // Additional placements sit immediately underneath that row and
-            // before the existing search-result excerpt.
-            primaryMetaContainer.insertAdjacentElement("afterend", clonedNav);
-          }
+      if (resultItems.length < 2) return;
+      const groupedResults = new Map();
+      resultItems.forEach((item) => {
+        // The live result contains the article title first, followed by its
+        // placement breadcrumb. Use the first visible line as the title.
+        const visibleLines = (item.innerText || item.textContent || "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (!visibleLines.length) return;
+        const title = normaliseText(visibleLines[0]);
+        if (!title) return;
+        if (!groupedResults.has(title)) {
+          // Keep the first placement Zendesk returned as the visible result.
+          groupedResults.set(title, {
+            item,
+            additionalPlacements: 0,
+          });
+          return;
         }
+        const primaryResult = groupedResults.get(title);
+        primaryResult.additionalPlacements += 1;
+        // Remove additional placements from the live dropdown. Their existence
+        // is represented by the +x indicator on the first visible placement.
+        item.remove();
+      });
+      groupedResults.forEach(({ item, additionalPlacements }) => {
+        // Remove any previous counter before rebuilding the results.
+        item
+          .querySelector(".fgc-live-search-placement-count")
+          ?.remove();
+        if (!additionalPlacements) return;
+        const visibleLines = (item.innerText || item.textContent || "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (visibleLines.length < 2) return;
+        // Find the element containing the breadcrumb text by matching the
+        // second visible line in the result.
+        const breadcrumbText = visibleLines[1];
+        const breadcrumbElement = Array.from(
+          item.querySelectorAll("*")
+        ).find((element) => {
+          return (
+            element.children.length === 0 &&
+            (element.textContent || "").trim() === breadcrumbText
+          );
+        });
+        if (!breadcrumbElement) return;
+        const placementCount = document.createElement("span");
+        placementCount.className = "fgc-live-search-placement-count";
+        placementCount.textContent = ` +${additionalPlacements}`;
+        breadcrumbElement.appendChild(placementCount);
+      });
+    }
+    function watchAutocompleteListbox() {
+      const listbox = searchForm.querySelector('[role="listbox"]');
+      if (!listbox || listbox === observedListbox) return;
+      if (listboxObserver) {
+        listboxObserver.disconnect();
       }
-      // The title and excerpt already exist in the primary result.
-      // Remove the duplicate placement from the visible search results.
-      item.remove();
+      observedListbox = listbox;
+      // Zendesk redraws instant-search suggestions as the user types.
+      // Observe only the autocomplete listbox rather than the whole page.
+      listboxObserver = new MutationObserver(() => {
+        groupCurrentLiveResults(listbox);
+      });
+      listboxObserver.observe(listbox, {
+        childList: true,
+        subtree: true,
+      });
+      groupCurrentLiveResults(listbox);
+    }
+    // Zendesk may create or replace the autocomplete component after the
+    // search field has loaded, so watch the search form for that listbox.
+    const searchObserver = new MutationObserver(() => {
+      watchAutocompleteListbox();
     });
+    searchObserver.observe(searchForm, {
+      childList: true,
+      subtree: true,
+    });
+    watchAutocompleteListbox();
   }
   
   // One DOMContentLoaded to rule them all
@@ -1380,6 +1394,9 @@ async function addTopicsToFeaturedPosts() {
     if (brand === 'team') {
       // Group duplicate article placements in Team KB search results
       groupMultiplacedSearchResults();
+
+      // Group duplicate article placements in Team KB live search
+      groupMultiplacedLiveSearchResults();
       
       // Only run on team brand and if we're on a community topics page
       const topicsList = document.querySelector('.topics-list');
