@@ -1047,8 +1047,8 @@ function groupMultiplacedSearchResults() {
     }
     function scheduleGrouping() {
       // Zendesk controls the autocomplete component and may redraw it as
-      // search state changes. Wait until its current render has completed
-      // before applying our presentation-only changes.
+      // search or selection state changes. Wait until its current render has
+      // completed before applying our presentation-only changes.
       if (updateScheduled) return;
       updateScheduled = true;
       requestAnimationFrame(() => {
@@ -1067,8 +1067,7 @@ function groupMultiplacedSearchResults() {
     }
     function groupCurrentLiveResults(autocomplete) {
       if (!autocomplete) return;
-      // Restore our previous presentation changes before recalculating.
-      // Zendesk's underlying result elements themselves are never removed.
+      // Remove only our previous presentation changes before recalculating.
       autocomplete
         .querySelectorAll(".fgc-live-search-duplicate")
         .forEach((item) => {
@@ -1082,7 +1081,7 @@ function groupMultiplacedSearchResults() {
           );
           breadcrumb.removeAttribute("data-additional-placements");
         });
-      // Zendesk renders the live suggestions inside the standalone
+      // Zendesk renders the live suggestions as children of the standalone
       // zd-autocomplete component.
       const resultItems = Array.from(autocomplete.children).filter((item) => {
         return normaliseText(item.innerText || item.textContent);
@@ -1098,7 +1097,7 @@ function groupMultiplacedSearchResults() {
         const title = normaliseText(visibleLines[0]);
         if (!title) return;
         if (!groupedResults.has(title)) {
-          // Preserve the first placement Zendesk returned.
+          // Keep the first placement Zendesk returned as the visible result.
           groupedResults.set(title, {
             item,
             additionalPlacements: 0,
@@ -1107,9 +1106,8 @@ function groupMultiplacedSearchResults() {
         }
         const primaryResult = groupedResults.get(title);
         primaryResult.additionalPlacements += 1;
-        // Do not delete or move Zendesk's duplicate result node.
-        // Hide it only at the presentation layer so Zendesk remains in
-        // complete control of its own rendered autocomplete structure.
+        // Do not remove or reorder Zendesk's duplicate result node.
+        // Hide it only at the presentation layer.
         item.classList.add("fgc-live-search-duplicate");
       });
       groupedResults.forEach(({ item, additionalPlacements }) => {
@@ -1120,7 +1118,7 @@ function groupMultiplacedSearchResults() {
           .filter(Boolean);
         if (visibleLines.length < 2) return;
         const breadcrumbText = visibleLines[1];
-        // Locate the smallest element containing the visible breadcrumb.
+        // Find the smallest element containing only the breadcrumb text.
         const breadcrumbElement = Array.from(
           item.querySelectorAll("*")
         ).find((element) => {
@@ -1130,8 +1128,8 @@ function groupMultiplacedSearchResults() {
           );
         });
         if (!breadcrumbElement) return;
-        // Store the count as an attribute rather than inserting another DOM
-        // element. CSS displays the +x marker using ::after.
+        // Store the count as an attribute rather than inserting another
+        // element into Zendesk's managed component.
         breadcrumbElement.classList.add(
           "fgc-live-search-primary-breadcrumb"
         );
@@ -1147,9 +1145,23 @@ function groupMultiplacedSearchResults() {
         autocompleteObserver.disconnect();
       }
       activeAutocomplete = autocomplete;
-      // Watch Zendesk's live results for redraws. We observe structural/text
-      // changes only, not attributes, so our own CSS classes and data
-      // attributes do not trigger another processing cycle.
+      // Zendesk can repaint the autocomplete when the highlighted result
+      // changes, even when the result structure itself barely changes.
+      autocomplete.addEventListener(
+        "pointermove",
+        scheduleGrouping,
+        { passive: true }
+      );
+      autocomplete.addEventListener(
+        "focusin",
+        scheduleGrouping
+      );
+      autocomplete.addEventListener(
+        "keydown",
+        scheduleGrouping
+      );
+      // Watch structural and text changes only. Do not observe attributes,
+      // because our own classes/data attributes would otherwise trigger us.
       autocompleteObserver = new MutationObserver(() => {
         scheduleGrouping();
       });
@@ -1160,9 +1172,7 @@ function groupMultiplacedSearchResults() {
       });
       scheduleGrouping();
     }
-    // Zendesk creates the autocomplete outside the search form and can replace
-    // the entire component as focus/query state changes. Watch the document
-    // for that component appearing or being replaced.
+    // Zendesk may create or replace the entire autocomplete component.
     const autocompleteContainerObserver = new MutationObserver(() => {
       const autocomplete = document.querySelector(
         'zd-autocomplete[role="listbox"]'
@@ -1178,6 +1188,21 @@ function groupMultiplacedSearchResults() {
       childList: true,
       subtree: true,
     });
+    // Keyboard interaction can remain focused on the search input rather than
+    // moving focus into the autocomplete itself.
+    const instantSearchInput = document.querySelector(
+      'form[data-search][data-instant="true"] input[type="search"]'
+    );
+    if (instantSearchInput) {
+      instantSearchInput.addEventListener(
+        "keydown",
+        scheduleGrouping
+      );
+      instantSearchInput.addEventListener(
+        "input",
+        scheduleGrouping
+      );
+    }
     const existingAutocomplete = document.querySelector(
       'zd-autocomplete[role="listbox"]'
     );
