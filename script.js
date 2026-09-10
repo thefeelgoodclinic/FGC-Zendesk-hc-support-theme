@@ -1037,7 +1037,7 @@ function groupMultiplacedSearchResults() {
   // ============================================
   function groupMultiplacedLiveSearchResults() {
     const searchForm = document.querySelector(
-      'form[role="search"][data-instant="true"]'
+      'form[data-search][data-instant="true"]'
     );
     if (!searchForm) return;
     let observedListbox = null;
