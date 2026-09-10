@@ -1897,7 +1897,6 @@ function groupMultiplacedSearchResults() {
       // setInterval(swapRecentActivityOrder, 1000);
       
       // console.log('Persistent swap monitoring active');
-    })();
 
   }); // This closes the main DOMContentLoaded event listener from line 863 
 
