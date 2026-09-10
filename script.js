@@ -956,6 +956,7 @@ async function addTopicsToFeaturedPosts() {
       const type = (item.dataset.resultType || "").toLowerCase();
       const title = (item.dataset.resultTitle || "").trim();
       // Only group knowledge base articles.
+      // Community posts and external content remain untouched.
       if (type !== "article" || !title) return;
       const description = (
         item.querySelector(".search-result-description")?.textContent || ""
@@ -963,28 +964,35 @@ async function addTopicsToFeaturedPosts() {
         .replace(/\s+/g, " ")
         .trim()
         .toLocaleLowerCase();
-      // Match title plus the opening content, protecting against
-      // unrelated articles that happen to share the same title.
+      // Multiplaced articles have separate Zendesk article IDs, so there is
+      // no shared article ID available here to use as a grouping key.
+      //
+      // Match the title plus the opening portion of the search excerpt instead.
+      // This protects against accidentally grouping two unrelated articles that
+      // happen to have exactly the same title.
       const groupKey =
         `${title.toLocaleLowerCase()}::${description.substring(0, 80)}`;
       if (!groupedResults.has(groupKey)) {
+        // Keep the first occurrence as the primary visible search result.
         groupedResults.set(groupKey, item);
         return;
       }
       const primaryItem = groupedResults.get(groupKey);
-      const primaryLocations = primaryItem.querySelector(
-        ".fgc-search-result-locations"
+      const primaryMetaContainer = primaryItem.querySelector(
+        ".search-result-meta-container"
       );
       const duplicateLocation = item.querySelector(
         ".fgc-search-result-location"
       );
-      if (!primaryLocations || !duplicateLocation) return;
+      if (!primaryMetaContainer || !duplicateLocation) return;
+      // Compare the complete breadcrumb text before adding another location.
+      // This prevents the same placement being displayed twice.
       const duplicateLocationText = duplicateLocation.textContent
         .replace(/\s+/g, " ")
         .trim()
         .toLocaleLowerCase();
       const existingLocations = Array.from(
-        primaryLocations.querySelectorAll(".fgc-search-result-location")
+        primaryItem.querySelectorAll(".fgc-search-result-location")
       );
       const locationAlreadyExists = existingLocations.some((location) => {
         return (
@@ -997,10 +1005,29 @@ async function addTopicsToFeaturedPosts() {
       if (!locationAlreadyExists) {
         const duplicateNav = duplicateLocation.closest("nav");
         if (duplicateNav) {
-          primaryLocations.appendChild(duplicateNav.cloneNode(true));
+          // Clone the duplicate result's breadcrumb so all of its original
+          // links remain independently clickable.
+          const clonedNav = duplicateNav.cloneNode(true);
+          clonedNav.classList.add("fgc-additional-search-location");
+          const existingAdditionalLocations = primaryItem.querySelectorAll(
+            ".fgc-additional-search-location"
+          );
+          if (existingAdditionalLocations.length) {
+            // If the article has more than two placements, stack each
+            // additional location beneath the previous one.
+            existingAdditionalLocations[
+              existingAdditionalLocations.length - 1
+            ].insertAdjacentElement("afterend", clonedNav);
+          } else {
+            // Keep the existing first location / author / date row untouched.
+            // Additional placements sit immediately underneath that row and
+            // before the existing search-result excerpt.
+            primaryMetaContainer.insertAdjacentElement("afterend", clonedNav);
+          }
         }
       }
-      // Keep one title and excerpt; remove the duplicate result.
+      // The title and excerpt already exist in the primary result.
+      // Remove the duplicate placement from the visible search results.
       item.remove();
     });
   }
@@ -1351,7 +1378,9 @@ async function addTopicsToFeaturedPosts() {
     const brand = detectBrand();
     
     if (brand === 'team') {
+      // Group duplicate article placements in Team KB search results
       groupMultiplacedSearchResults();
+      
       // Only run on team brand and if we're on a community topics page
       const topicsList = document.querySelector('.topics-list');
       if (topicsList) {
