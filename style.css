@@ -5117,7 +5117,11 @@ a.sign-in:hover{
   margin-top: 2px;
 }
 /* Multiplaced articles in live search */
-.fgc-live-search-placement-count {
+.fgc-live-search-duplicate {
+  display: none !important;
+}
+.fgc-live-search-primary-breadcrumb::after {
+  content: " +" attr(data-additional-placements);
   margin-left: 4px;
   font-weight: 600;
 }
