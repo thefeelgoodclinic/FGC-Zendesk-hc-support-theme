@@ -5116,6 +5116,11 @@ a.sign-in:hover{
 .fgc-additional-search-location {
   margin-top: 2px;
 }
+/* Multiplaced articles in live search */
+.fgc-live-search-placement-count {
+  margin-left: 4px;
+  font-weight: 600;
+}
 .search-result-description {
   margin-top: 10px;
   margin-bottom: 0;
