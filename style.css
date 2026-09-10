@@ -5112,6 +5112,10 @@ a.sign-in:hover{
 .search-result-breadcrumbs {
   margin: 0;
 }
+/* Additional locations for multiplaced search results */
+.fgc-additional-search-location {
+  margin-top: 2px;
+}
 .search-result-description {
   margin-top: 10px;
   margin-bottom: 0;
