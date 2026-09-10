@@ -1036,33 +1036,69 @@ function groupMultiplacedSearchResults() {
   // GROUP MULTIPLACED LIVE SEARCH RESULTS
   // ============================================
   function groupMultiplacedLiveSearchResults() {
-    const searchForm = document.querySelector(
-      'form[data-search][data-instant="true"]'
-    );
-    if (!searchForm) return;
+    let activeAutocomplete = null;
+    let autocompleteObserver = null;
+    let updateScheduled = false;
     function normaliseText(value) {
       return (value || "")
         .replace(/\s+/g, " ")
         .trim()
         .toLocaleLowerCase();
     }
-    function groupCurrentLiveResults() {
-      // Zendesk renders each instant-search suggestion as its own
-      // zd-autocomplete-multibrand element.
-      const resultItems = Array.from(
-        searchForm.querySelectorAll("zd-autocomplete-multibrand")
-      );
+    function scheduleGrouping() {
+      // Zendesk controls the autocomplete component and may redraw it as
+      // search state changes. Wait until its current render has completed
+      // before applying our presentation-only changes.
+      if (updateScheduled) return;
+      updateScheduled = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updateScheduled = false;
+          const autocomplete = document.querySelector(
+            'zd-autocomplete[role="listbox"]'
+          );
+          if (!autocomplete) return;
+          if (autocomplete !== activeAutocomplete) {
+            attachToAutocomplete(autocomplete);
+          }
+          groupCurrentLiveResults(autocomplete);
+        });
+      });
+    }
+    function groupCurrentLiveResults(autocomplete) {
+      if (!autocomplete) return;
+      // Restore our previous presentation changes before recalculating.
+      // Zendesk's underlying result elements themselves are never removed.
+      autocomplete
+        .querySelectorAll(".fgc-live-search-duplicate")
+        .forEach((item) => {
+          item.classList.remove("fgc-live-search-duplicate");
+        });
+      autocomplete
+        .querySelectorAll(".fgc-live-search-primary-breadcrumb")
+        .forEach((breadcrumb) => {
+          breadcrumb.classList.remove(
+            "fgc-live-search-primary-breadcrumb"
+          );
+          breadcrumb.removeAttribute("data-additional-placements");
+        });
+      // Zendesk renders the live suggestions inside the standalone
+      // zd-autocomplete component.
+      const resultItems = Array.from(autocomplete.children).filter((item) => {
+        return normaliseText(item.innerText || item.textContent);
+      });
       if (resultItems.length < 2) return;
       const groupedResults = new Map();
       resultItems.forEach((item) => {
-        const titleElement = item.querySelector(
-          "zd-autocomplete-title-multibrand"
-        );
-        if (!titleElement) return;
-        const title = normaliseText(titleElement.textContent);
+        const visibleLines = (item.innerText || item.textContent || "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (!visibleLines.length) return;
+        const title = normaliseText(visibleLines[0]);
         if (!title) return;
         if (!groupedResults.has(title)) {
-          // Keep the first placement Zendesk returned as the visible result.
+          // Preserve the first placement Zendesk returned.
           groupedResults.set(title, {
             item,
             additionalPlacements: 0,
@@ -1071,36 +1107,83 @@ function groupMultiplacedSearchResults() {
         }
         const primaryResult = groupedResults.get(title);
         primaryResult.additionalPlacements += 1;
-        // Remove the duplicate placement from the dropdown.
-        item.remove();
+        // Do not delete or move Zendesk's duplicate result node.
+        // Hide it only at the presentation layer so Zendesk remains in
+        // complete control of its own rendered autocomplete structure.
+        item.classList.add("fgc-live-search-duplicate");
       });
       groupedResults.forEach(({ item, additionalPlacements }) => {
         if (!additionalPlacements) return;
-        const breadcrumbElement = item.querySelector(
-          "zd-autocomplete-breadcrumbs-multibrand"
-        );
+        const visibleLines = (item.innerText || item.textContent || "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+        if (visibleLines.length < 2) return;
+        const breadcrumbText = visibleLines[1];
+        // Locate the smallest element containing the visible breadcrumb.
+        const breadcrumbElement = Array.from(
+          item.querySelectorAll("*")
+        ).find((element) => {
+          return (
+            element.children.length === 0 &&
+            (element.textContent || "").trim() === breadcrumbText
+          );
+        });
         if (!breadcrumbElement) return;
-        // Remove any previous counter before rebuilding.
-        breadcrumbElement
-          .querySelector(".fgc-live-search-placement-count")
-          ?.remove();
-        const placementCount = document.createElement("span");
-        placementCount.className = "fgc-live-search-placement-count";
-        placementCount.textContent = ` +${additionalPlacements}`;
-        breadcrumbElement.appendChild(placementCount);
+        // Store the count as an attribute rather than inserting another DOM
+        // element. CSS displays the +x marker using ::after.
+        breadcrumbElement.classList.add(
+          "fgc-live-search-primary-breadcrumb"
+        );
+        breadcrumbElement.setAttribute(
+          "data-additional-placements",
+          additionalPlacements
+        );
       });
     }
-    // Zendesk recreates the autocomplete suggestions as the user types,
-    // so watch only this search form and regroup whenever its results change.
-    const searchObserver = new MutationObserver(() => {
-      groupCurrentLiveResults();
+    function attachToAutocomplete(autocomplete) {
+      if (!autocomplete) return;
+      if (autocompleteObserver) {
+        autocompleteObserver.disconnect();
+      }
+      activeAutocomplete = autocomplete;
+      // Watch Zendesk's live results for redraws. We observe structural/text
+      // changes only, not attributes, so our own CSS classes and data
+      // attributes do not trigger another processing cycle.
+      autocompleteObserver = new MutationObserver(() => {
+        scheduleGrouping();
+      });
+      autocompleteObserver.observe(autocomplete, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      scheduleGrouping();
+    }
+    // Zendesk creates the autocomplete outside the search form and can replace
+    // the entire component as focus/query state changes. Watch the document
+    // for that component appearing or being replaced.
+    const autocompleteContainerObserver = new MutationObserver(() => {
+      const autocomplete = document.querySelector(
+        'zd-autocomplete[role="listbox"]'
+      );
+      if (
+        autocomplete &&
+        autocomplete !== activeAutocomplete
+      ) {
+        attachToAutocomplete(autocomplete);
+      }
     });
-    searchObserver.observe(searchForm, {
+    autocompleteContainerObserver.observe(document.body, {
       childList: true,
       subtree: true,
     });
-    // Also run once in case suggestions already exist.
-    groupCurrentLiveResults();
+    const existingAutocomplete = document.querySelector(
+      'zd-autocomplete[role="listbox"]'
+    );
+    if (existingAutocomplete) {
+      attachToAutocomplete(existingAutocomplete);
+    }
   }
   
   // One DOMContentLoaded to rule them all
