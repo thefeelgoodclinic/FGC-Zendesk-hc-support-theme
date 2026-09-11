@@ -2093,9 +2093,12 @@ function groupMultiplacedSearchResults() {
       // Group duplicate article placements first
       groupMultiplacedSearchResults();
     
-      // Apply Restricted article padlocks everywhere
-      initTeamRestrictionLocks();
-      
+      // Apply Restricted article padlocks to home/category/section/article pages
+      applyTeamRestrictionLocks();
+    
+      // Keep Restricted article padlocks attached to search/tag results
+      watchTeamSearchRestrictionLocks();
+    
       // Group duplicate article placements in Team KB live search
       groupMultiplacedLiveSearchResults();
       
