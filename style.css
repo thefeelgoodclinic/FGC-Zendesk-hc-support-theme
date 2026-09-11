@@ -6328,7 +6328,7 @@ html {
 .article-list-item .fgc-restricted-lock {
   display: inline-flex;
   margin-left: 4px;
-  vertical-align: -0.05em;
+  vertical-align: -0.03em;
   text-decoration: none !important;
 }
 
