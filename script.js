@@ -364,13 +364,6 @@
       const articleMap = new Map(
         articles.map(article => [String(article.id), article])
       );
-      // Remove Zendesk's default "internal" locks first.
-      document.querySelectorAll(".icon-lock").forEach(lock => {
-        const customLock = lock.closest(".fgc-restricted-lock");
-        if (!customLock) {
-          lock.remove();
-        }
-      });
       // Category + section pages
       document.querySelectorAll(".article-list-item").forEach(item => {
         const link = item.querySelector(
