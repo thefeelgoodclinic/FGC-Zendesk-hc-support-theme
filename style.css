@@ -6372,3 +6372,10 @@ body.fgc-current-article-restricted
 .fgc-lock-keep-together .fgc-restricted-lock {
   margin-left: 0.18em;
 }
+
+/* Article-page padlock scales with the responsive H1 */
+.article-header .article-title .icon-lock {
+  width: 0.36em;
+  height: 0.36em;
+  flex: 0 0 auto;
+}
