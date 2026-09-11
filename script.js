@@ -496,11 +496,13 @@ async function applyTeamRestrictionLocks() {
         }
       }
     }
-  } catch (error) {
+    } catch (error) {
     console.error(
       "Unable to apply article restriction locks:",
       error
     );
+  } finally {
+    document.body.classList.remove("fgc-restriction-locks-loading");
   }
 }
 
