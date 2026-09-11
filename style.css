@@ -6414,8 +6414,20 @@ body.fgc-current-article-restricted
   text-decoration: none !important;
 }
 
-/* Keep the final word and padlock together so the lock cannot wrap alone */
-.search-result-title .fgc-lock-tail {
-  display: inline;
+/* Keep the final title word and padlock together */
+.search-result-title .fgc-search-lock-tail {
+  display: inline-block;
   white-space: nowrap;
+}
+
+/* Preserve normal title underline across both linked title fragments */
+.search-result-title:hover > a,
+.search-result-title:hover .fgc-search-lock-tail-link {
+  text-decoration: underline;
+}
+
+/* Never underline the padlock or its spacing */
+.search-result-title .fgc-restricted-lock,
+.search-result-title .fgc-restricted-lock * {
+  text-decoration: none !important;
 }
