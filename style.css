@@ -6436,45 +6436,15 @@ body.fgc-current-article-restricted
    MOBILE SEARCH FILTERS — match article sidebar treatment
    ========================================================= */
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
 
-  /* Remove card-style spacing/background from each filter */
-  .search-results-sidebar .filters-in-section.collapsible-sidebar {
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    border-radius: 0;
-    border-top: 1px solid currentColor;
+  /* Remove the search-specific gaps between accordion rows */
+  .search-results-sidebar .collapsible-sidebar {
+    margin-bottom: 0;
   }
 
-  /* Only the final filter gets the bottom rule */
-  .search-results-sidebar .filters-in-section.collapsible-sidebar:last-child {
-    border-bottom: 1px solid currentColor;
-  }
-
-  /* Compact accordion heading row */
-  .search-results-sidebar .collapsible-sidebar-title {
-    margin: 0;
-    padding: 14px 12px;
-  }
-
-  /* Position chevron like the article-page accordion */
-  .search-results-sidebar .collapsible-sidebar-toggle {
-    top: 0;
-    right: 0;
-    width: 48px;
-    height: 48px;
-  }
-
-  /* Remove the large gaps between Type / Related to / etc. */
-  .search-results-sidebar {
-    gap: 0;
-    margin-bottom: 40px;
-  }
-
-  /* Expanded filter contents sit neatly beneath the heading */
-  .search-results-sidebar .multibrand-filter-list {
-    margin: 0;
-    padding: 0 12px 14px;
+  /* Match the divider used between article-page sidebar rows */
+  .search-results-sidebar .collapsible-sidebar:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.20);
   }
 }
