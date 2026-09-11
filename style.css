@@ -6508,13 +6508,23 @@ body.fgc-current-article-restricted
    ========================================================= */
 
 .pagination {
+  margin: 40px 0 20px;
+  text-align: center;
+}
+
+/* The actual Zendesk pagination row */
+.pagination-list {
   display: flex;
   justify-content: center;
   align-items: stretch;
   gap: 6px;
-  margin: 40px 0 20px;
+
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
+/* Pagination item wrappers */
 .pagination-prev,
 .pagination-next,
 .pagination-first,
@@ -6531,35 +6541,40 @@ body.fgc-current-article-restricted
   justify-content: center;
   gap: 8px;
 
+  box-sizing: border-box;
+  width: 150px !important;
   min-width: 150px;
-  padding: 0 24px;
+  height: 48px;
+  padding: 0 20px;
 
   color: #fff !important;
   text-decoration: none !important;
 }
 
-/* First / Last arrow buttons */
+/* First / Last arrow-only controls */
 .pagination-first-link,
 .pagination-last-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  width: 44px;
-  min-width: 44px;
+  box-sizing: border-box;
+  width: 48px !important;
+  min-width: 48px;
+  height: 48px;
   padding: 0;
 
   color: #fff !important;
   text-decoration: none !important;
 }
 
-/* Remove inherited directional spacing */
+/* Remove Zendesk's original asymmetric text spacing */
 .pagination-prev-text,
 .pagination-next-text {
   margin: 0;
 }
 
-/* Keep visited buttons visually identical */
+/* Visited controls must look exactly like unvisited controls */
 .pagination-prev-link:visited,
 .pagination-next-link:visited,
 .pagination-first-link:visited,
@@ -6568,7 +6583,7 @@ body.fgc-current-article-restricted
   text-decoration: none !important;
 }
 
-/* Hover / active */
+/* No permanent underline; underline appears on interaction */
 .pagination-prev-link:hover,
 .pagination-next-link:hover,
 .pagination-first-link:hover,
@@ -6579,9 +6594,10 @@ body.fgc-current-article-restricted
 .pagination-last-link:active {
   color: #fff !important;
   text-decoration: underline !important;
+  outline: none;
 }
 
-/* Keyboard focus */
+/* Accessible keyboard focus */
 .pagination-prev-link:focus-visible,
 .pagination-next-link:focus-visible,
 .pagination-first-link:focus-visible,
@@ -6592,17 +6608,24 @@ body.fgc-current-article-restricted
   outline-offset: 2px;
 }
 
-/* First page: disabled Previous placeholder */
-.pagination:not(:has(.pagination-prev))::before {
+/*
+ * First page:
+ * Zendesk omits Previous entirely.
+ * Insert a disabled control into the pagination LIST so
+ * the row retains the same width and balance.
+ */
+.pagination-list:not(:has(.pagination-prev))::before {
   content: "‹ Previous";
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
 
+  box-sizing: border-box;
+  width: 150px;
   min-width: 150px;
-  padding: 0 24px;
+  height: 48px;
+  padding: 0 20px;
 
   background: #d8d8d8;
   border-radius: 4px;
@@ -6611,7 +6634,6 @@ body.fgc-current-article-restricted
   font-family: 'Recoleta';
   font-weight: 600;
   font-size: clamp(1rem, 4vw, 1.1rem);
-  line-height: 2.34;
   letter-spacing: 0.02rem;
 
   white-space: nowrap;
