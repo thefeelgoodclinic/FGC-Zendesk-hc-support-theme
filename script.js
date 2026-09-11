@@ -415,29 +415,6 @@ function createRestrictionLock() {
     lastTextNode.parentNode.appendChild(wrapper);
   }
 
-  const lastTextNode = textNodes[textNodes.length - 1];
-  if (!lastTextNode) return;
-
-  const text = lastTextNode.textContent;
-  const match = text.match(/(\S+)\s*$/);
-  if (!match) return;
-
-  const lastWord = match[1];
-
-  lastTextNode.textContent = text.slice(
-    0,
-    text.length - match[0].length
-  );
-
-  const wrapper = document.createElement("span");
-  wrapper.className = "fgc-lock-keep-together";
-
-  wrapper.appendChild(document.createTextNode(lastWord));
-  wrapper.appendChild(lockElement);
-
-  lastTextNode.parentNode.appendChild(wrapper);
-}  
-
 async function fetchAllAccessibleArticles() {
   const articles = [];
   let page = 1;
