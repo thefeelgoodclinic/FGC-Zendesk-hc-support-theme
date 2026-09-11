@@ -303,58 +303,125 @@
   }
 
   // ============================================
-  // TEAM KB RESTRICTED ARTICLE PADLOCKS
+  // TEAM KB ARTICLE RESTRICTION LOCKS
   // ============================================
-  async function updateTeamArticlePadlocks() {
-    // Team brand only. Support retains Zendesk's native padlock behaviour.
+  const STANDARD_USER_SEGMENT_IDS = new Set([
+    1964427, // Signed-in users
+    1964387, // Agents and admins
+  ]);
+  function articleIsRestricted(article) {
+    return (
+      article.user_segment_id !== null &&
+      !STANDARD_USER_SEGMENT_IDS.has(article.user_segment_id)
+    );
+  }
+  function getArticleIdFromUrl(url) {
+    const match = String(url || "").match(/\/articles\/(\d+)/);
+    return match ? match[1] : null;
+  }
+  function createRestrictionLock() {
+    const wrapper = document.createElement("span");
+    wrapper.className = "fgc-restricted-lock";
+    wrapper.setAttribute("title", "Restricted");
+    wrapper.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="16"
+           height="16"
+           focusable="false"
+           viewBox="0 0 16 16"
+           class="icon-lock"
+           aria-label="Restricted">
+        <rect width="12" height="9" x="2" y="7"
+              fill="currentColor" rx="1" ry="1"/>
+        <path fill="none" stroke="currentColor"
+              d="M4.5 7.5V4a3.5 3.5 0 017 0v3.5"/>
+      </svg>
+    `;
+    return wrapper;
+  }
+  async function fetchAllAccessibleArticles() {
+    const articles = [];
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const response = await fetch(
+        `/api/v2/help_center/articles.json?per_page=100&page=${page}`
+      );
+      if (!response.ok) {
+        throw new Error(`Unable to load articles: ${response.status}`);
+      }
+      const data = await response.json();
+      articles.push(...(data.articles || []));
+      hasMore = Boolean(data.next_page);
+      page++;
+    }
+    return articles;
+  }
+  async function applyTeamRestrictionLocks() {
     if (detectBrand() !== "team") return;
-    // These are Zendesk's built-in audience levels for this Help Center.
-    // We treat both as normal Team KB visibility and do not show a padlock.
-    const BUILT_IN_SEGMENT_IDS = new Set([
-      1964427, // Signed-in users
-      1964387, // Agents and admins
-    ]);
-    const lockIcons = Array.from(
-      document.querySelectorAll(".icon-lock")
-    );
-    if (!lockIcons.length) return;
-    await Promise.all(
-      lockIcons.map(async (lockIcon) => {
-        const articleItem = lockIcon.closest(".article-list-item");
-        if (!articleItem) return;
-        const articleLink = articleItem.querySelector(
-          'a[href*="/articles/"]'
-        );
-        const href = articleLink?.getAttribute("href") || "";
-        const match = href.match(/\/articles\/(\d+)/);
-        if (!match) return;
-        const articleId = match[1];
-        try {
-          const response = await fetch(
-            `/api/v2/help_center/en-au/articles/${articleId}.json`
-          );
-          if (!response.ok) return;
-          const data = await response.json();
-          const segmentId = data.article?.user_segment_id;
-          // Remove the native Zendesk padlock when the article is:
-          // - visible to everyone, or
-          // - restricted only to one of Zendesk's built-in Team audiences.
-          //
-          // Custom user segments retain the padlock.
-          if (
-            segmentId == null ||
-            BUILT_IN_SEGMENT_IDS.has(segmentId)
-          ) {
-            lockIcon.remove();
-          }
-        } catch (error) {
-          console.error(
-            `Error checking article permissions for ${articleId}:`,
-            error
-          );
+    try {
+      const articles = await fetchAllAccessibleArticles();
+      const articleMap = new Map(
+        articles.map(article => [String(article.id), article])
+      );
+      // Remove Zendesk's default "internal" locks first.
+      document.querySelectorAll(".icon-lock").forEach(lock => {
+        const customLock = lock.closest(".fgc-restricted-lock");
+        if (!customLock) {
+          lock.remove();
         }
-      })
-    );
+      });
+      // Category + section pages
+      document.querySelectorAll(".article-list-item").forEach(item => {
+        const link = item.querySelector(
+          'a.article-list-link[href*="/articles/"]'
+        );
+        if (!link) return;
+        const articleId = getArticleIdFromUrl(link.href);
+        const article = articleMap.get(articleId);
+        if (!article || !articleIsRestricted(article)) return;
+        if (!item.querySelector(".fgc-restricted-lock")) {
+          item.appendChild(createRestrictionLock());
+        }
+      });
+      // Search results
+      document.querySelectorAll(".fgc-search-result").forEach(item => {
+        const link = item.querySelector(
+          '.search-result-title a[href*="/articles/"]'
+        );
+        if (!link) return;
+        const articleId = getArticleIdFromUrl(link.href);
+        const article = articleMap.get(articleId);
+        if (!article || !articleIsRestricted(article)) return;
+        const title = item.querySelector(".search-result-title");
+        if (title && !title.querySelector(".fgc-restricted-lock")) {
+          title.appendChild(createRestrictionLock());
+        }
+      });
+      // Home page: pinned + latest articles
+      document.querySelectorAll(
+        '.article-title a[href*="/articles/"]'
+      ).forEach(link => {
+        const articleId = getArticleIdFromUrl(link.href);
+        const article = articleMap.get(articleId);
+        if (!article || !articleIsRestricted(article)) return;
+        const title = link.closest(".article-title");
+        if (title && !title.querySelector(".fgc-restricted-lock")) {
+          title.appendChild(createRestrictionLock());
+        }
+      });
+      // Individual article page
+      const currentArticleId = getArticleIdFromUrl(window.location.pathname);
+      const currentArticle = articleMap.get(currentArticleId);
+      if (currentArticle && articleIsRestricted(currentArticle)) {
+        const title = document.querySelector(".article-header .article-title");
+        if (title && !title.querySelector(".fgc-restricted-lock")) {
+          title.appendChild(createRestrictionLock());
+        }
+      }
+    } catch (error) {
+      console.error("Unable to apply article restriction locks:", error);
+    }
   }
 
   // CSRF helpers (deduped)
