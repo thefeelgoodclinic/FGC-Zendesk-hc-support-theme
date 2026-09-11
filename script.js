@@ -384,32 +384,6 @@
           item.appendChild(createRestrictionLock());
         }
       });
-      // Search + tag results
-      const searchItems = document.querySelectorAll(".fgc-search-result");
-      for (const item of searchItems) {
-        const link = item.querySelector('a[href*="/articles/"]');
-        if (!link) continue;
-        const articleId = getArticleIdFromUrl(link.href);
-        if (!articleId) continue;
-        try {
-          const response = await fetch(
-            `/api/v2/help_center/en-au/articles/${articleId}.json`
-          );
-          if (!response.ok) continue;
-          const data = await response.json();
-          const article = data.article;
-          if (!article || !articleIsRestricted(article)) continue;
-          const title = item.querySelector(".search-result-title");
-          if (title && !title.querySelector(".fgc-restricted-lock")) {
-            title.appendChild(createRestrictionLock());
-          }
-        } catch (error) {
-          console.error(
-            `Unable to check restriction for article ${articleId}:`,
-            error
-          );
-        }
-      }
       // Home page: pinned + latest articles
       document.querySelectorAll(
         '.article-title a[href*="/articles/"]'
@@ -434,6 +408,93 @@
     } catch (error) {
       console.error("Unable to apply article restriction locks:", error);
     }
+  }
+
+  // ============================================
+  // KEEP RESTRICTION LOCKS ON SEARCH / TAG RESULTS
+  // ============================================
+  function watchTeamSearchRestrictionLocks() {
+    if (detectBrand() !== "team") return;
+  
+    const resultsList = document.querySelector(".search-results-list");
+    if (!resultsList) return;
+  
+    let updateScheduled = false;
+  
+    async function refreshSearchLocks() {
+      if (updateScheduled) return;
+  
+      updateScheduled = true;
+  
+      queueMicrotask(async () => {
+        try {
+          const searchItems = Array.from(
+            document.querySelectorAll(".fgc-search-result")
+          );
+  
+          for (const item of searchItems) {
+            const link = item.querySelector(
+              '.search-result-title a[href*="/articles/"]'
+            );
+  
+            if (!link) continue;
+  
+            const articleId = getArticleIdFromUrl(link.href);
+            if (!articleId) continue;
+  
+            let article;
+  
+            try {
+              const response = await fetch(
+                `/api/v2/help_center/en-au/articles/${articleId}.json`
+              );
+  
+              if (!response.ok) continue;
+  
+              const data = await response.json();
+              article = data.article;
+            } catch (error) {
+              console.error(
+                `Unable to check restriction for article ${articleId}:`,
+                error
+              );
+              continue;
+            }
+  
+            const title = item.querySelector(".search-result-title");
+            if (!title) continue;
+  
+            const existingLock = title.querySelector(
+              ".fgc-restricted-lock"
+            );
+  
+            if (article && articleIsRestricted(article)) {
+              if (!existingLock) {
+                title.appendChild(createRestrictionLock());
+              }
+            } else if (existingLock) {
+              existingLock.remove();
+            }
+          }
+        } finally {
+          updateScheduled = false;
+        }
+      });
+    }
+  
+    // Process the currently rendered results.
+    refreshSearchLocks();
+  
+    // Zendesk may redraw the search results after page load,
+    // particularly for filtered/content-tag searches.
+    const observer = new MutationObserver(() => {
+      refreshSearchLocks();
+    });
+  
+    observer.observe(resultsList, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   // CSRF helpers (deduped)
@@ -1872,6 +1933,9 @@ function groupMultiplacedSearchResults() {
       // Group duplicate article placements in Team KB search results
       groupMultiplacedSearchResults();
 
+      // Keep restriction locks attached to Zendesk search/tag results
+      watchTeamSearchRestrictionLocks();
+      
       // Group duplicate article placements in Team KB live search
       groupMultiplacedLiveSearchResults();
       
