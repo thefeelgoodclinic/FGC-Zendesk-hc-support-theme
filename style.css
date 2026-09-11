@@ -6275,16 +6275,20 @@ html {
    RESTRICTED ARTICLE LOCKS
    ============================================ */
 
+/* Hide Zendesk's generic internal lock on list pages.
+   Restricted articles receive the custom lock from script.js instead. */
+.article-list-item > .icon-lock {
+  display: none;
+}
+
 .fgc-restricted-lock {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  margin-left: 8px;
+  margin-left: 5px;
   line-height: 1;
-  vertical-align: -0.12em;
-  opacity: 1;
-  animation: fgc-restricted-lock-in 120ms ease-out;
+  vertical-align: -0.1em;
 }
 
 .fgc-restricted-lock .icon-lock {
@@ -6294,25 +6298,28 @@ html {
   margin: 0;
 }
 
-/* Larger lock beside the article-page H1 */
+/* Article pages already render Zendesk's correctly sized/positioned lock.
+   Do not show a second custom lock there. */
 .article-header .article-title .fgc-restricted-lock {
-  margin-left: 10px;
-  vertical-align: -0.1em;
+  display: none;
 }
 
-.article-header .article-title .fgc-restricted-lock .icon-lock {
-  width: 20px;
-  height: 20px;
+/* Search/tag results */
+.search-result-title .fgc-restricted-lock {
+  margin-left: 5px;
+  vertical-align: -0.08em;
 }
 
-@keyframes fgc-restricted-lock-in {
-  from {
-    opacity: 0;
-  }
+/* Section/category article lists */
+.article-list-item .fgc-restricted-lock {
+  margin-left: 5px;
+  vertical-align: -0.08em;
+}
 
-  to {
-    opacity: 1;
-  }
+/* Home-page pinned/latest article titles */
+.featured-container .article-title .fgc-restricted-lock {
+  margin-left: 5px;
+  vertical-align: -0.08em;
 }
 
 /* ============================================
