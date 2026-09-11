@@ -6366,3 +6366,9 @@ body.fgc-current-article-restricted
 .fgc-lock-keep-together .icon-lock {
   margin-left: 4px;
 }
+
+/* Keep restricted padlock visually separated from the article title */
+.fgc-lock-keep-together .icon-lock,
+.fgc-lock-keep-together .fgc-restricted-lock {
+  margin-left: 0.18em;
+}
