@@ -6341,3 +6341,8 @@ html {
 .featured-container .article-title a:hover {
   text-decoration: underline;
 }
+
+/* Prevent native article lock flashing before restriction status is resolved */
+body.fgc-restriction-locks-loading .article-header .article-title .icon-lock {
+  visibility: hidden;
+}
