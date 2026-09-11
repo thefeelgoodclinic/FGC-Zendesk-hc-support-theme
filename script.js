@@ -347,6 +347,97 @@ function createRestrictionLock() {
   return wrapper;
 }
 
+  /**
+   * Keeps a restriction padlock attached to the final word of a title.
+   *
+   * This prevents the padlock from wrapping onto a new line by itself
+   * when a title is close to the available width.
+   *
+   * The function:
+   * 1. Finds the final text node within the title.
+   * 2. Extracts the final word.
+   * 3. Wraps that word and the padlock in a single inline element.
+   * 4. CSS can then prevent that final word + padlock pair from breaking.
+   *
+   * @param {HTMLElement} titleElement - The title containing the text.
+   * @param {HTMLElement} lockElement - The restriction padlock to insert.
+   */
+  function keepLockWithLastWord(titleElement, lockElement) {
+    if (!titleElement || !lockElement) return;
+  
+    // Find all text nodes contained within the title.
+    const walker = document.createTreeWalker(
+      titleElement,
+      NodeFilter.SHOW_TEXT
+    );
+  
+    const textNodes = [];
+    let node;
+  
+    // Collect usable text nodes, ignoring any existing lock elements.
+    while ((node = walker.nextNode())) {
+      if (
+        node.parentElement &&
+        !node.parentElement.closest(".fgc-restricted-lock, .icon-lock") &&
+        node.textContent.trim()
+      ) {
+        textNodes.push(node);
+      }
+    }
+  
+    // Use the final text node, which contains the end of the title.
+    const lastTextNode = textNodes[textNodes.length - 1];
+    if (!lastTextNode) return;
+  
+    const text = lastTextNode.textContent;
+  
+    // Extract the final non-whitespace word from the title.
+    const match = text.match(/(\S+)\s*$/);
+    if (!match) return;
+  
+    const lastWord = match[1];
+  
+    // Remove the final word from its original text node.
+    lastTextNode.textContent = text.slice(
+      0,
+      text.length - match[0].length
+    );
+  
+    // Create a wrapper that will keep the final word and lock together.
+    const wrapper = document.createElement("span");
+    wrapper.className = "fgc-lock-keep-together";
+  
+    // Put the final word back inside the wrapper, followed by the lock.
+    wrapper.appendChild(document.createTextNode(lastWord));
+    wrapper.appendChild(lockElement);
+  
+    // Insert the combined final-word + lock wrapper into the title.
+    lastTextNode.parentNode.appendChild(wrapper);
+  }
+
+  const lastTextNode = textNodes[textNodes.length - 1];
+  if (!lastTextNode) return;
+
+  const text = lastTextNode.textContent;
+  const match = text.match(/(\S+)\s*$/);
+  if (!match) return;
+
+  const lastWord = match[1];
+
+  lastTextNode.textContent = text.slice(
+    0,
+    text.length - match[0].length
+  );
+
+  const wrapper = document.createElement("span");
+  wrapper.className = "fgc-lock-keep-together";
+
+  wrapper.appendChild(document.createTextNode(lastWord));
+  wrapper.appendChild(lockElement);
+
+  lastTextNode.parentNode.appendChild(wrapper);
+}  
+
 async function fetchAllAccessibleArticles() {
   const articles = [];
   let page = 1;
@@ -454,7 +545,8 @@ async function applyTeamRestrictionLocks() {
 
         if (!article || !articleIsRestricted(article)) return;
 
-        title.appendChild(createRestrictionLock());
+        const lock = createRestrictionLock();
+        keepLockWithLastWord(title, lock);
       });
 
     /*
@@ -626,7 +718,8 @@ function watchTeamSearchRestrictionLocks() {
 
             if (restricted) {
               if (!existingLock) {
-                title.appendChild(createRestrictionLock());
+                const lock = createRestrictionLock();
+                keepLockWithLastWord(title, lock);
               }
             } else if (existingLock) {
               existingLock.remove();
