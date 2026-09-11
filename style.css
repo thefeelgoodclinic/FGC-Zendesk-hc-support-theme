@@ -6358,7 +6358,7 @@ html {
 .featured-container .fgc-restricted-lock {
   display: inline-flex;
   margin-left: 4px;
-  vertical-align: -0.05em;
+  vertical-align: 0.00em;
   text-decoration: none !important;
 }
 
