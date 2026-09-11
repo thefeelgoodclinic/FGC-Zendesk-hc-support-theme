@@ -487,9 +487,13 @@ async function applyTeamRestrictionLocks() {
           .forEach((lock) => lock.remove());
 
         if (
-          !currentArticle ||
-          !articleIsRestricted(currentArticle)
+          currentArticle &&
+          articleIsRestricted(currentArticle)
         ) {
+          document.body.classList.add(
+            "fgc-current-article-restricted"
+          );
+        } else {
           articleTitle
             .querySelectorAll(".icon-lock")
             .forEach((lock) => lock.remove());
