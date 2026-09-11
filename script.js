@@ -418,7 +418,10 @@
   
     // Watch a stable parent rather than .search-results-list itself.
     // Zendesk can replace the entire results list after rendering/filtering.
-    const searchRoot = document.querySelector(".search-results-column");
+    const searchRoot =
+      document.querySelector(".search-results-list") ||
+      document.querySelector(".search-results");
+    
     if (!searchRoot) return;
   
     const restrictionCache = new Map();
