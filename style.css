@@ -6379,3 +6379,41 @@ body.fgc-current-article-restricted
   height: 0.36em;
   flex: 0 0 auto;
 }
+
+/* =========================================================
+   SEARCH / TAG RESULTS — restricted article padlock polish
+   ========================================================= */
+
+/* Keep the title text and lock visually aligned */
+.search-result-title .fgc-restricted-lock {
+  display: inline-flex;
+  align-items: flex-end;
+  margin-left: 8px;
+  vertical-align: baseline;
+  transform: translateY(-1px);
+  text-decoration: none !important;
+}
+
+/* Lock size for search/tag result titles */
+.search-result-title .fgc-restricted-lock svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/*
+ * The title link itself keeps the normal hover underline.
+ * The lock and the gap before it must never be underlined.
+ */
+.search-result-title:hover .fgc-restricted-lock,
+.search-result-title:hover .fgc-restricted-lock *,
+.search-result-title .fgc-restricted-lock:hover,
+.search-result-title .fgc-restricted-lock:hover * {
+  text-decoration: none !important;
+}
+
+/* Do not let the lock become a line-wrap orphan */
+.search-result-title .fgc-lock-tail {
+  display: inline-block;
+  white-space: nowrap;
+}
