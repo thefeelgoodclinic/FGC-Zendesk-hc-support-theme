@@ -6607,36 +6607,3 @@ body.fgc-current-article-restricted
   outline: 2px solid #BD96CE;
   outline-offset: 2px;
 }
-
-/*
- * First page:
- * Zendesk omits Previous entirely.
- * Insert a disabled control into the pagination LIST so
- * the row retains the same width and balance.
- */
-.pagination-list:not(:has(.pagination-prev))::before {
-  content: "‹ Previous";
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  box-sizing: border-box;
-  width: 150px;
-  min-width: 150px;
-  height: 48px;
-  padding: 0 20px;
-
-  background: #d8d8d8;
-  border-radius: 4px;
-  color: #777;
-
-  font-family: 'Recoleta';
-  font-weight: 600;
-  font-size: clamp(1rem, 4vw, 1.1rem);
-  letter-spacing: 0.02rem;
-
-  white-space: nowrap;
-  cursor: default;
-  user-select: none;
-}
