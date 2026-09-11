@@ -416,51 +416,43 @@
   function watchTeamSearchRestrictionLocks() {
     if (detectBrand() !== "team") return;
   
-    // Watch a stable parent rather than .search-results-list itself.
-    // Zendesk can replace the entire results list after rendering/filtering.
-    const searchRoot =
-      document.querySelector(".search-results-list") ||
-      document.querySelector(".search-results");
-    
+    const searchRoot = document.querySelector(".search-results-column");
     if (!searchRoot) return;
   
-    const restrictionCache = new Map();
-  
+    let articleLookupPromise = null;
+    let refreshScheduled = false;
     let refreshRunning = false;
     let refreshAgain = false;
-    let refreshScheduled = false;
   
-    async function getRestrictionStatus(articleId) {
-      if (restrictionCache.has(articleId)) {
-        return restrictionCache.get(articleId);
+    function normaliseArticleTitle(value) {
+      return String(value || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLocaleLowerCase();
+    }
+  
+    async function getArticleLookup() {
+      if (!articleLookupPromise) {
+        articleLookupPromise = fetchAllAccessibleArticles().then((articles) => {
+          const lookup = new Map();
+  
+          articles.forEach((article) => {
+            const key = normaliseArticleTitle(article.title);
+  
+            if (!key) return;
+  
+            if (!lookup.has(key)) {
+              lookup.set(key, []);
+            }
+  
+            lookup.get(key).push(article);
+          });
+  
+          return lookup;
+        });
       }
   
-      try {
-        const response = await fetch(
-          `/api/v2/help_center/en-au/articles/${articleId}.json`
-        );
-  
-        if (!response.ok) {
-          return false;
-        }
-  
-        const data = await response.json();
-  
-        const restricted =
-          data.article &&
-          articleIsRestricted(data.article);
-  
-        restrictionCache.set(articleId, restricted);
-  
-        return restricted;
-      } catch (error) {
-        console.error(
-          `Unable to check restriction for article ${articleId}:`,
-          error
-        );
-  
-        return false;
-      }
+      return articleLookupPromise;
     }
   
     async function refreshSearchLocks() {
@@ -472,43 +464,42 @@
       refreshRunning = true;
   
       try {
+        const articleLookup = await getArticleLookup();
+  
         do {
           refreshAgain = false;
   
-          const links = Array.from(
-            document.querySelectorAll(
-              '.fgc-search-result .search-result-title a[href*="/articles/"]'
-            )
-          );
-  
-          const articleIds = [
-            ...new Set(
-              links
-                .map(link => getArticleIdFromUrl(link.href))
-                .filter(Boolean)
-            ),
-          ];
-  
-          await Promise.all(
-            articleIds.map(articleId =>
-              getRestrictionStatus(articleId)
-            )
-          );
-  
-          // Query the CURRENT DOM after the API calls complete.
           document
             .querySelectorAll(".fgc-search-result")
-            .forEach(item => {
-              const link = item.querySelector(
-                '.search-result-title a[href*="/articles/"]'
+            .forEach((item) => {
+              if (
+                (item.dataset.resultType || "").toLowerCase() !==
+                "article"
+              ) {
+                return;
+              }
+  
+              const titleText =
+                item.dataset.resultTitle ||
+                item.querySelector(".search-result-title")
+                  ?.textContent ||
+                "";
+  
+              const key = normaliseArticleTitle(titleText);
+  
+              if (!key) return;
+  
+              const matchingArticles =
+                articleLookup.get(key) || [];
+  
+              /*
+               * Multiplaced articles may exist as separate Zendesk article
+               * records with the same title. Treat the visible grouped result
+               * as restricted if any accessible placement is restricted.
+               */
+              const restricted = matchingArticles.some(
+                articleIsRestricted
               );
-  
-              if (!link) return;
-  
-              const articleId =
-                getArticleIdFromUrl(link.href);
-  
-              if (!articleId) return;
   
               const title = item.querySelector(
                 ".search-result-title"
@@ -516,13 +507,9 @@
   
               if (!title) return;
   
-              const restricted =
-                restrictionCache.get(articleId) === true;
-  
-              const existingLock =
-                title.querySelector(
-                  ".fgc-restricted-lock"
-                );
+              const existingLock = title.querySelector(
+                ".fgc-restricted-lock"
+              );
   
               if (restricted) {
                 if (!existingLock) {
@@ -535,6 +522,11 @@
               }
             });
         } while (refreshAgain);
+      } catch (error) {
+        console.error(
+          "Unable to apply restriction locks to search results:",
+          error
+        );
       } finally {
         refreshRunning = false;
       }
@@ -551,17 +543,15 @@
       });
     }
   
-    // Process the initial server-rendered results.
+    // Initial search/tag results.
     scheduleRefresh();
   
-    // IMPORTANT:
-    // Observe the stable search-results column, not the disposable results UL.
-    // This continues working if Zendesk replaces .search-results-list entirely.
+    // Reapply if Zendesk redraws the result list.
     const observer = new MutationObserver(() => {
       scheduleRefresh();
     });
   
-    observer.observe(document.body, {
+    observer.observe(searchRoot, {
       childList: true,
       subtree: true,
     });
