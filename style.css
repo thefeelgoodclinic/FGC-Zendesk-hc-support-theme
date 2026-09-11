@@ -6416,6 +6416,6 @@ body.fgc-current-article-restricted
 
 /* Keep the final word and padlock together so the lock cannot wrap alone */
 .search-result-title .fgc-lock-tail {
-  display: inline-block;
+  display: inline;
   white-space: nowrap;
 }
