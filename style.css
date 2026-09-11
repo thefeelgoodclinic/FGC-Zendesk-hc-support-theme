@@ -6504,7 +6504,7 @@ body.fgc-current-article-restricted
 }
 
 /* =========================================================
-   PAGINATION — consistent global treatment
+   PAGINATION — polished global button treatment
    ========================================================= */
 
 .pagination {
@@ -6515,22 +6515,21 @@ body.fgc-current-article-restricted
   margin: 40px 0 20px;
 }
 
-/* Pagination item wrappers */
-.pagination-next,
 .pagination-prev,
+.pagination-next,
 .pagination-first,
 .pagination-last {
   display: flex;
   margin: 0;
 }
 
-/* Previous / Next buttons */
+/* Previous / Next */
 .pagination-prev-link,
 .pagination-next-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
 
   min-width: 150px;
   padding: 0 24px;
@@ -6539,13 +6538,7 @@ body.fgc-current-article-restricted
   text-decoration: none !important;
 }
 
-/* Remove old directional spacing */
-.pagination-prev-text,
-.pagination-next-text {
-  margin: 0;
-}
-
-/* First / Last arrow-only buttons */
+/* First / Last arrow buttons */
 .pagination-first-link,
 .pagination-last-link {
   display: inline-flex;
@@ -6560,7 +6553,13 @@ body.fgc-current-article-restricted
   text-decoration: none !important;
 }
 
-/* Keep visited pagination controls visible */
+/* Remove inherited directional spacing */
+.pagination-prev-text,
+.pagination-next-text {
+  margin: 0;
+}
+
+/* Keep visited buttons visually identical */
 .pagination-prev-link:visited,
 .pagination-next-link:visited,
 .pagination-first-link:visited,
@@ -6580,7 +6579,6 @@ body.fgc-current-article-restricted
 .pagination-last-link:active {
   color: #fff !important;
   text-decoration: underline !important;
-  outline: none;
 }
 
 /* Keyboard focus */
@@ -6594,16 +6592,14 @@ body.fgc-current-article-restricted
   outline-offset: 2px;
 }
 
-/*
- * First page: Zendesk omits Previous entirely.
- * Add a disabled placeholder to preserve the pagination shape.
- */
+/* First page: disabled Previous placeholder */
 .pagination:not(:has(.pagination-prev))::before {
-  content: "‹  Previous";
+  content: "‹ Previous";
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 
   min-width: 150px;
   padding: 0 24px;
