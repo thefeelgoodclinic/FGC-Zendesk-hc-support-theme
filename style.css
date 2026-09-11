@@ -6270,3 +6270,67 @@ svg[data-garden-id='dropdowns.combobox.input_icon'] {
 html {
   scroll-behavior: smooth;
 }
+
+/* ============================================
+   RESTRICTED ARTICLE LOCKS
+   ============================================ */
+
+.fgc-restricted-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: 8px;
+  line-height: 1;
+  vertical-align: -0.12em;
+  opacity: 1;
+  animation: fgc-restricted-lock-in 120ms ease-out;
+}
+
+.fgc-restricted-lock .icon-lock {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+/* Larger lock beside the article-page H1 */
+.article-header .article-title .fgc-restricted-lock {
+  margin-left: 10px;
+  vertical-align: -0.1em;
+}
+
+.article-header .article-title .fgc-restricted-lock .icon-lock {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes fgc-restricted-lock-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   KB NAVIGATIONAL LINK TREATMENT
+   ============================================ */
+
+.search-result-title a,
+.search-result-breadcrumbs a,
+.sub-nav .breadcrumbs a,
+.article-list-link,
+.featured-container .article-title a {
+  text-decoration: none;
+}
+
+.search-result-title a:hover,
+.search-result-breadcrumbs a:hover,
+.sub-nav .breadcrumbs a:hover,
+.article-list-link:hover,
+.featured-container .article-title a:hover {
+  text-decoration: underline;
+}
