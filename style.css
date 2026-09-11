@@ -6443,13 +6443,13 @@ body.fgc-current-article-restricted
     margin-bottom: 0;
   }
 
-  /* Match article-page accordion borders */
+  /* Match the article sidebar's solid outer borders */
   .search-results-sidebar {
-    border-top: 1px solid rgba(0, 0, 0, 0.20);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.20);
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
   }
 
-  /* Divider between filter rows */
+  /* Match the article page's lighter divider between rows */
   .search-results-sidebar .collapsible-sidebar:not(:last-child) {
     border-bottom: 1px solid rgba(0, 0, 0, 0.20);
   }
