@@ -6342,7 +6342,16 @@ html {
   text-decoration: underline;
 }
 
-/* Prevent native article lock flashing before restriction status is resolved */
-body.fgc-restriction-locks-loading .article-header .article-title .icon-lock {
+/* Hide Zendesk's native article-page lock until its restriction
+   status has been positively confirmed by script.js. */
+.article-header .article-title > .icon-lock {
   visibility: hidden;
+}
+
+/* Reveal the native larger lock only for genuinely restricted articles. */
+body.fgc-current-article-restricted
+  .article-header
+  .article-title
+  > .icon-lock {
+  visibility: visible;
 }
