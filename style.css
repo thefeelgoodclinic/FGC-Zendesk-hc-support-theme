@@ -6314,10 +6314,34 @@ html {
   vertical-align: -0.08em;
 }
 
-/* Section/category article lists */
+/* =========================================================
+   SECTION / CATEGORY LISTS — restricted article padlock polish
+   ========================================================= */
+
+/* Keep the final word and lock together */
+.article-list-item .fgc-section-lock-tail {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Match search/tag padlock spacing and baseline exactly */
 .article-list-item .fgc-restricted-lock {
-  margin-left: 5px;
-  vertical-align: -0.08em;
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: 0;
+  text-decoration: none !important;
+}
+
+/* Keep the whole split title behaving as one hover target */
+.article-list-item .fgc-section-title-group:hover .article-list-link,
+.article-list-item .fgc-section-title-group:hover .fgc-section-lock-tail-link {
+  text-decoration: underline;
+}
+
+/* Never underline the padlock or its 4px gap */
+.article-list-item .fgc-restricted-lock,
+.article-list-item .fgc-restricted-lock * {
+  text-decoration: none !important;
 }
 
 /* Home-page pinned/latest article titles */
