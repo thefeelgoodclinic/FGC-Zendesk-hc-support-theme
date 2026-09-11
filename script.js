@@ -357,197 +357,192 @@
     }
     return articles;
   }
-  async function applyTeamRestrictionLocks() {
+  
+  // ============================================
+  // TEAM KB RESTRICTION LOCKS
+  // ============================================
+  async function initTeamRestrictionLocks() {
     if (detectBrand() !== "team") return;
+  
     try {
       const articles = await fetchAllAccessibleArticles();
-      const articleMap = new Map(
+  
+      const articleById = new Map(
         articles.map(article => [String(article.id), article])
       );
-      // Category + section pages
-      document.querySelectorAll(".article-list-item").forEach(item => {
-        const link = item.querySelector(
-          'a.article-list-link[href*="/articles/"]'
-        );
-        if (!link) return;
-        const articleId = getArticleIdFromUrl(link.href);
-        const article = articleMap.get(articleId);
-        if (!article || !articleIsRestricted(article)) return;
-        if (!item.querySelector(".fgc-restricted-lock")) {
-          item.appendChild(createRestrictionLock());
-        }
-      });
-      // Home page: pinned + latest articles
-      document.querySelectorAll(
-        '.article-title a[href*="/articles/"]'
-      ).forEach(link => {
-        const articleId = getArticleIdFromUrl(link.href);
-        const article = articleMap.get(articleId);
-        if (!article || !articleIsRestricted(article)) return;
-        const title = link.closest(".article-title");
-        if (title && !title.querySelector(".fgc-restricted-lock")) {
-          title.appendChild(createRestrictionLock());
-        }
-      });
-      // Individual article page
-      const currentArticleId = getArticleIdFromUrl(window.location.pathname);
-      const currentArticle = articleMap.get(currentArticleId);
-      if (currentArticle && articleIsRestricted(currentArticle)) {
-        const title = document.querySelector(".article-header .article-title");
-        if (title && !title.querySelector(".fgc-restricted-lock")) {
-          title.appendChild(createRestrictionLock());
-        }
+  
+      const articlesByTitle = new Map();
+  
+      function normaliseTitle(value) {
+        return String(value || "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLocaleLowerCase();
       }
-    } catch (error) {
-      console.error("Unable to apply article restriction locks:", error);
-    }
-  }
-
-  // ============================================
-  // KEEP RESTRICTION LOCKS ON SEARCH / TAG RESULTS
-  // ============================================
-  function watchTeamSearchRestrictionLocks() {
-    if (detectBrand() !== "team") return;
   
-    const searchRoot = document.querySelector(".search-results-column");
-    if (!searchRoot) return;
+      articles.forEach(article => {
+        const key = normaliseTitle(article.title);
+        if (!key) return;
   
-    let articleLookupPromise = null;
-    let refreshScheduled = false;
-    let refreshRunning = false;
-    let refreshAgain = false;
+        if (!articlesByTitle.has(key)) {
+          articlesByTitle.set(key, []);
+        }
   
-    function normaliseArticleTitle(value) {
-      return String(value || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLocaleLowerCase();
-    }
+        articlesByTitle.get(key).push(article);
+      });
   
-    async function getArticleLookup() {
-      if (!articleLookupPromise) {
-        articleLookupPromise = fetchAllAccessibleArticles().then((articles) => {
-          const lookup = new Map();
+      function addLock(target) {
+        if (!target || target.querySelector(".fgc-restricted-lock")) return;
+        target.appendChild(createRestrictionLock());
+      }
   
-          articles.forEach((article) => {
-            const key = normaliseArticleTitle(article.title);
+      function updateLocks() {
   
-            if (!key) return;
+        // ----------------------------
+        // Section / category pages
+        // ----------------------------
+        document.querySelectorAll(".article-list-item").forEach(item => {
+          const link = item.querySelector(
+            'a.article-list-link[href*="/articles/"]'
+          );
   
-            if (!lookup.has(key)) {
-              lookup.set(key, []);
+          if (!link) return;
+  
+          const articleId = getArticleIdFromUrl(link.href);
+          const article = articleById.get(articleId);
+  
+          if (!article) return;
+  
+          const existingCustomLock =
+            item.querySelector(".fgc-restricted-lock");
+  
+          if (articleIsRestricted(article)) {
+            if (!existingCustomLock) {
+              item.appendChild(createRestrictionLock());
             }
+          } else if (existingCustomLock) {
+            existingCustomLock.remove();
+          }
+        });
   
-            lookup.get(key).push(article);
+        // ----------------------------
+        // Home page
+        // ----------------------------
+        document
+          .querySelectorAll('.article-title a[href*="/articles/"]')
+          .forEach(link => {
+            const articleId = getArticleIdFromUrl(link.href);
+            const article = articleById.get(articleId);
+  
+            if (!article) return;
+  
+            const title = link.closest(".article-title");
+            if (!title) return;
+  
+            const existingCustomLock =
+              title.querySelector(".fgc-restricted-lock");
+  
+            if (articleIsRestricted(article)) {
+              addLock(title);
+            } else if (existingCustomLock) {
+              existingCustomLock.remove();
+            }
           });
   
-          return lookup;
+        // ----------------------------
+        // Search + content-tag results
+        // ----------------------------
+        document.querySelectorAll(".fgc-search-result").forEach(item => {
+          if (
+            (item.dataset.resultType || "").toLowerCase() !== "article"
+          ) {
+            return;
+          }
+  
+          const titleText =
+            item.dataset.resultTitle ||
+            item.querySelector(".search-result-title")?.textContent ||
+            "";
+  
+          const matchingArticles =
+            articlesByTitle.get(normaliseTitle(titleText)) || [];
+  
+          const restricted = matchingArticles.some(articleIsRestricted);
+  
+          const title = item.querySelector(".search-result-title");
+          if (!title) return;
+  
+          const existingCustomLock =
+            title.querySelector(".fgc-restricted-lock");
+  
+          if (restricted) {
+            addLock(title);
+          } else if (existingCustomLock) {
+            existingCustomLock.remove();
+          }
+        });
+  
+        // ----------------------------
+        // Individual article page
+        // ----------------------------
+        const currentArticleId =
+          getArticleIdFromUrl(window.location.pathname);
+  
+        if (currentArticleId) {
+          const article = articleById.get(currentArticleId);
+          const title = document.querySelector(
+            ".article-header .article-title"
+          );
+  
+          if (article && title) {
+            const existingCustomLock =
+              title.querySelector(".fgc-restricted-lock");
+  
+            if (articleIsRestricted(article)) {
+              addLock(title);
+            } else if (existingCustomLock) {
+              existingCustomLock.remove();
+            }
+          }
+        }
+      }
+  
+      // Initial pass
+      updateLocks();
+  
+      /*
+       * Zendesk can redraw search/tag results after page load.
+       * Watch only that results area and reapply the same logic.
+       */
+      const searchRoot =
+        document.querySelector(".search-results-column");
+  
+      if (searchRoot) {
+        let scheduled = false;
+  
+        const observer = new MutationObserver(() => {
+          if (scheduled) return;
+  
+          scheduled = true;
+  
+          queueMicrotask(() => {
+            scheduled = false;
+            updateLocks();
+          });
+        });
+  
+        observer.observe(searchRoot, {
+          childList: true,
+          subtree: true,
         });
       }
   
-      return articleLookupPromise;
+    } catch (error) {
+      console.error(
+        "Unable to initialise article restriction locks:",
+        error
+      );
     }
-  
-    async function refreshSearchLocks() {
-      if (refreshRunning) {
-        refreshAgain = true;
-        return;
-      }
-  
-      refreshRunning = true;
-  
-      try {
-        const articleLookup = await getArticleLookup();
-  
-        do {
-          refreshAgain = false;
-  
-          document
-            .querySelectorAll(".fgc-search-result")
-            .forEach((item) => {
-              if (
-                (item.dataset.resultType || "").toLowerCase() !==
-                "article"
-              ) {
-                return;
-              }
-  
-              const titleText =
-                item.dataset.resultTitle ||
-                item.querySelector(".search-result-title")
-                  ?.textContent ||
-                "";
-  
-              const key = normaliseArticleTitle(titleText);
-  
-              if (!key) return;
-  
-              const matchingArticles =
-                articleLookup.get(key) || [];
-  
-              /*
-               * Multiplaced articles may exist as separate Zendesk article
-               * records with the same title. Treat the visible grouped result
-               * as restricted if any accessible placement is restricted.
-               */
-              const restricted = matchingArticles.some(
-                articleIsRestricted
-              );
-  
-              const title = item.querySelector(
-                ".search-result-title"
-              );
-  
-              if (!title) return;
-  
-              const existingLock = title.querySelector(
-                ".fgc-restricted-lock"
-              );
-  
-              if (restricted) {
-                if (!existingLock) {
-                  title.appendChild(
-                    createRestrictionLock()
-                  );
-                }
-              } else if (existingLock) {
-                existingLock.remove();
-              }
-            });
-        } while (refreshAgain);
-      } catch (error) {
-        console.error(
-          "Unable to apply restriction locks to search results:",
-          error
-        );
-      } finally {
-        refreshRunning = false;
-      }
-    }
-  
-    function scheduleRefresh() {
-      if (refreshScheduled) return;
-  
-      refreshScheduled = true;
-  
-      queueMicrotask(() => {
-        refreshScheduled = false;
-        refreshSearchLocks();
-      });
-    }
-  
-    // Initial search/tag results.
-    scheduleRefresh();
-  
-    // Reapply if Zendesk redraws the result list.
-    const observer = new MutationObserver(() => {
-      scheduleRefresh();
-    });
-  
-    observer.observe(searchRoot, {
-      childList: true,
-      subtree: true,
-    });
   }
 
   // CSRF helpers (deduped)
@@ -1980,14 +1975,11 @@ function groupMultiplacedSearchResults() {
     const brand = detectBrand();
     
     if (brand === 'team') {
-      // Only show padlocks for custom Restricted article permissions
-      applyTeamRestrictionLocks();
-      
-      // Group duplicate article placements in Team KB search results
+      // Group duplicate article placements first
       groupMultiplacedSearchResults();
-
-      // Keep restriction locks attached to Zendesk search/tag results
-      watchTeamSearchRestrictionLocks();
+    
+      // Apply Restricted article padlocks everywhere
+      initTeamRestrictionLocks();
       
       // Group duplicate article placements in Team KB live search
       groupMultiplacedLiveSearchResults();
