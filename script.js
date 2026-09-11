@@ -459,6 +459,48 @@ function keepSectionLockWithLastWord(link, lockElement) {
   group.appendChild(link);
   group.appendChild(tail);
 }
+
+/**
+ * Keeps the final word and restriction lock together on
+ * home-page article titles without putting the lock inside
+ * the article link.
+ *
+ * This preserves normal title hover underlining while preventing
+ * the padlock from wrapping onto a line by itself.
+ */
+function keepHomeLockWithLastWord(link, lockElement) {
+  if (!link || !lockElement) return;
+
+  const text = link.textContent || "";
+  const match = text.match(/(\S+)\s*$/);
+
+  if (!match) return;
+
+  const lastWord = match[1];
+
+  // Remove the final word from the original article link.
+  link.textContent = text.slice(0, text.length - match[0].length);
+
+  // Group the two linked title fragments and the lock.
+  const group = document.createElement("span");
+  group.className = "fgc-home-title-group";
+
+  // Create a second link containing only the final word.
+  const tailLink = link.cloneNode(false);
+  tailLink.classList.add("fgc-home-lock-tail-link");
+  tailLink.textContent = lastWord;
+
+  // Final word + lock stay together.
+  const tail = document.createElement("span");
+  tail.className = "fgc-home-lock-tail";
+
+  tail.appendChild(tailLink);
+  tail.appendChild(lockElement);
+
+  link.parentNode.insertBefore(group, link);
+  group.appendChild(link);
+  group.appendChild(tail);
+}
   
 /**
  * Keeps the final word and restriction lock together on search/tag results,
@@ -613,7 +655,7 @@ async function applyTeamRestrictionLocks() {
         if (!article || !articleIsRestricted(article)) return;
 
         const lock = createRestrictionLock();
-        keepLockWithLastWord(title, lock);
+        keepHomeLockWithLastWord(link, lock);
       });
 
     /*
