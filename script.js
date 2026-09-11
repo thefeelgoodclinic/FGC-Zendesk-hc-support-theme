@@ -415,6 +415,61 @@ function createRestrictionLock() {
     lastTextNode.parentNode.appendChild(wrapper);
   }
 
+/**
+ * Keeps the final word and restriction lock together on search/tag results,
+ * while keeping the padlock outside the clickable title link.
+ *
+ * This allows the title text to underline on hover without underlining
+ * the padlock or the gap before it.
+ */
+function keepSearchLockWithLastWord(titleElement, lockElement) {
+  if (!titleElement || !lockElement) return;
+
+  const link = titleElement.querySelector('a');
+  if (!link) return;
+
+  const walker = document.createTreeWalker(
+    link,
+    NodeFilter.SHOW_TEXT
+  );
+
+  const textNodes = [];
+  let node;
+
+  while ((node = walker.nextNode())) {
+    if (node.textContent.trim()) {
+      textNodes.push(node);
+    }
+  }
+
+  const lastTextNode = textNodes[textNodes.length - 1];
+  if (!lastTextNode) return;
+
+  const text = lastTextNode.textContent;
+  const match = text.match(/(\S+)\s*$/);
+  if (!match) return;
+
+  const lastWord = match[1];
+
+  lastTextNode.textContent = text.slice(
+    0,
+    text.length - match[0].length
+  );
+
+  const wrapper = document.createElement("span");
+  wrapper.className = "fgc-search-lock-tail";
+
+  const tailLink = link.cloneNode(false);
+  tailLink.removeAttribute("id");
+  tailLink.classList.add("fgc-search-lock-tail-link");
+  tailLink.textContent = lastWord;
+
+  wrapper.appendChild(tailLink);
+  wrapper.appendChild(lockElement);
+
+  link.insertAdjacentElement("afterend", wrapper);
+}
+  
 async function fetchAllAccessibleArticles() {
   const articles = [];
   let page = 1;
