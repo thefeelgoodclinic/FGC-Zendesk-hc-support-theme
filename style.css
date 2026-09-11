@@ -6344,10 +6344,34 @@ html {
   text-decoration: none !important;
 }
 
-/* Home-page pinned/latest article titles */
-.featured-container .article-title .fgc-restricted-lock {
-  margin-left: 5px;
-  vertical-align: -0.08em;
+/* =========================================================
+   HOME PAGE — restricted article padlock polish
+   ========================================================= */
+
+/* Keep the final word and lock together */
+.featured-container .fgc-home-lock-tail {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Preserve existing horizontal spacing; correct vertical alignment */
+.featured-container .fgc-restricted-lock {
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: -0.05em;
+  text-decoration: none !important;
+}
+
+/* Treat both title fragments as one hover target */
+.featured-container .fgc-home-title-group:hover .article-title a,
+.featured-container .fgc-home-title-group:hover .fgc-home-lock-tail-link {
+  text-decoration: underline;
+}
+
+/* Never underline the padlock or the gap before it */
+.featured-container .fgc-restricted-lock,
+.featured-container .fgc-restricted-lock * {
+  text-decoration: none !important;
 }
 
 /* ============================================
