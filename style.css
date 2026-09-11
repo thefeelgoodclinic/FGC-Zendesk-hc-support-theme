@@ -6392,7 +6392,7 @@ body.fgc-current-article-restricted
 .search-result-title .fgc-restricted-lock {
   display: inline-flex;
   margin-left: 4px;
-  vertical-align: -0.08em;
+  vertical-align: 0.04em;
   text-decoration: none !important;
 }
 
