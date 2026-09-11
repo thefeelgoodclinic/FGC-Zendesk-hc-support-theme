@@ -562,6 +562,21 @@ async function applyTeamRestrictionLocks() {
           document.body.classList.add(
             "fgc-current-article-restricted"
           );
+        
+          /*
+           * Keep Zendesk's native article-page padlock attached
+           * to the final word of the title so it can never wrap
+           * onto a line by itself.
+           */
+          const nativeLock = articleTitle.querySelector(".icon-lock");
+        
+          if (
+            nativeLock &&
+            !nativeLock.closest(".fgc-lock-keep-together")
+          ) {
+            keepLockWithLastWord(articleTitle, nativeLock);
+          }
+        
         } else {
           articleTitle
             .querySelectorAll(".icon-lock")
