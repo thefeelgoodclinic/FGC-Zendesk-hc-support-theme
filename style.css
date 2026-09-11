@@ -6387,10 +6387,8 @@ body.fgc-current-article-restricted
 /* Keep the title text and lock visually aligned */
 .search-result-title .fgc-restricted-lock {
   display: inline-flex;
-  align-items: flex-end;
-  margin-left: 8px;
-  vertical-align: baseline;
-  transform: translateY(-1px);
+  margin-left: 4px;
+  vertical-align: -0.08em;
   text-decoration: none !important;
 }
 
@@ -6412,7 +6410,7 @@ body.fgc-current-article-restricted
   text-decoration: none !important;
 }
 
-/* Do not let the lock become a line-wrap orphan */
+/* Keep the final word and padlock together so the lock cannot wrap alone */
 .search-result-title .fgc-lock-tail {
   display: inline-block;
   white-space: nowrap;
