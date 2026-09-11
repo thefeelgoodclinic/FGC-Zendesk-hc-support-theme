@@ -6355,3 +6355,14 @@ body.fgc-current-article-restricted
   > .icon-lock {
   visibility: visible;
 }
+
+/* Keep the final title word and restriction lock together */
+.fgc-lock-keep-together {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.fgc-lock-keep-together .fgc-restricted-lock,
+.fgc-lock-keep-together .icon-lock {
+  margin-left: 4px;
+}
