@@ -384,20 +384,32 @@
           item.appendChild(createRestrictionLock());
         }
       });
-      // Search results
-      document.querySelectorAll(".fgc-search-result").forEach(item => {
-        const link = item.querySelector(
-          '.search-result-title a[href*="/articles/"]'
-        );
-        if (!link) return;
+      // Search + tag results
+      const searchItems = document.querySelectorAll(".fgc-search-result");
+      for (const item of searchItems) {
+        const link = item.querySelector('a[href*="/articles/"]');
+        if (!link) continue;
         const articleId = getArticleIdFromUrl(link.href);
-        const article = articleMap.get(articleId);
-        if (!article || !articleIsRestricted(article)) return;
-        const title = item.querySelector(".search-result-title");
-        if (title && !title.querySelector(".fgc-restricted-lock")) {
-          title.appendChild(createRestrictionLock());
+        if (!articleId) continue;
+        try {
+          const response = await fetch(
+            `/api/v2/help_center/en-au/articles/${articleId}.json`
+          );
+          if (!response.ok) continue;
+          const data = await response.json();
+          const article = data.article;
+          if (!article || !articleIsRestricted(article)) continue;
+          const title = item.querySelector(".search-result-title");
+          if (title && !title.querySelector(".fgc-restricted-lock")) {
+            title.appendChild(createRestrictionLock());
+          }
+        } catch (error) {
+          console.error(
+            `Unable to check restriction for article ${articleId}:`,
+            error
+          );
         }
-      });
+      }
       // Home page: pinned + latest articles
       document.querySelectorAll(
         '.article-title a[href*="/articles/"]'
