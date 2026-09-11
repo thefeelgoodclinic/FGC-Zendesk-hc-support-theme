@@ -766,7 +766,7 @@ function watchTeamSearchRestrictionLocks() {
             if (restricted) {
               if (!existingLock) {
                 const lock = createRestrictionLock();
-                keepLockWithLastWord(title, lock);
+                keepSearchLockWithLastWord(title, lock);
               }
             } else if (existingLock) {
               existingLock.remove();
