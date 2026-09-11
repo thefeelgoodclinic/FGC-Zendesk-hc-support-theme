@@ -6303,6 +6303,10 @@ html {
 .article-header .article-title .fgc-restricted-lock {
   display: none;
 }
+/* Article-page H1 native padlock spacing */
+.article-header .article-title .icon-lock {
+  margin-left: 8px;
+}
 
 /* Search/tag results */
 .search-result-title .fgc-restricted-lock {
