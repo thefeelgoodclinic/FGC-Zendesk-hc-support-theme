@@ -416,13 +416,16 @@
   function watchTeamSearchRestrictionLocks() {
     if (detectBrand() !== "team") return;
   
-    const resultsList = document.querySelector(".search-results-list");
-    if (!resultsList) return;
+    // Watch a stable parent rather than .search-results-list itself.
+    // Zendesk can replace the entire results list after rendering/filtering.
+    const searchRoot = document.querySelector(".search-results-column");
+    if (!searchRoot) return;
   
     const restrictionCache = new Map();
   
     let refreshRunning = false;
     let refreshAgain = false;
+    let refreshScheduled = false;
   
     async function getRestrictionStatus(articleId) {
       if (restrictionCache.has(articleId)) {
@@ -435,21 +438,24 @@
         );
   
         if (!response.ok) {
-          restrictionCache.set(articleId, false);
           return false;
         }
   
         const data = await response.json();
+  
         const restricted =
-          data.article && articleIsRestricted(data.article);
+          data.article &&
+          articleIsRestricted(data.article);
   
         restrictionCache.set(articleId, restricted);
+  
         return restricted;
       } catch (error) {
         console.error(
           `Unable to check restriction for article ${articleId}:`,
           error
         );
+  
         return false;
       }
     }
@@ -466,27 +472,27 @@
         do {
           refreshAgain = false;
   
-          // Read the article IDs from the CURRENT result set.
-          const articleIds = Array.from(
+          const links = Array.from(
             document.querySelectorAll(
               '.fgc-search-result .search-result-title a[href*="/articles/"]'
             )
-          )
-            .map(link => getArticleIdFromUrl(link.href))
-            .filter(Boolean);
+          );
   
-          const uniqueArticleIds = [...new Set(articleIds)];
+          const articleIds = [
+            ...new Set(
+              links
+                .map(link => getArticleIdFromUrl(link.href))
+                .filter(Boolean)
+            ),
+          ];
   
-          // Fetch all required permission states concurrently.
           await Promise.all(
-            uniqueArticleIds.map(articleId =>
+            articleIds.map(articleId =>
               getRestrictionStatus(articleId)
             )
           );
   
-          // IMPORTANT:
-          // Query the DOM again AFTER the requests complete.
-          // Zendesk may have replaced the result nodes while we were waiting.
+          // Query the CURRENT DOM after the API calls complete.
           document
             .querySelectorAll(".fgc-search-result")
             .forEach(item => {
@@ -496,43 +502,63 @@
   
               if (!link) return;
   
-              const articleId = getArticleIdFromUrl(link.href);
+              const articleId =
+                getArticleIdFromUrl(link.href);
+  
               if (!articleId) return;
   
-              const title = item.querySelector(".search-result-title");
+              const title = item.querySelector(
+                ".search-result-title"
+              );
+  
               if (!title) return;
   
               const restricted =
                 restrictionCache.get(articleId) === true;
   
-              const existingLock = title.querySelector(
-                ".fgc-restricted-lock"
-              );
+              const existingLock =
+                title.querySelector(
+                  ".fgc-restricted-lock"
+                );
   
               if (restricted) {
                 if (!existingLock) {
-                  title.appendChild(createRestrictionLock());
+                  title.appendChild(
+                    createRestrictionLock()
+                  );
                 }
               } else if (existingLock) {
                 existingLock.remove();
               }
             });
-  
         } while (refreshAgain);
       } finally {
         refreshRunning = false;
       }
     }
   
-    // Process initial server-rendered results.
-    refreshSearchLocks();
+    function scheduleRefresh() {
+      if (refreshScheduled) return;
   
-    // Re-run if Zendesk redraws/replaces search results.
+      refreshScheduled = true;
+  
+      queueMicrotask(() => {
+        refreshScheduled = false;
+        refreshSearchLocks();
+      });
+    }
+  
+    // Process the initial server-rendered results.
+    scheduleRefresh();
+  
+    // IMPORTANT:
+    // Observe the stable search-results column, not the disposable results UL.
+    // This continues working if Zendesk replaces .search-results-list entirely.
     const observer = new MutationObserver(() => {
-      refreshSearchLocks();
+      scheduleRefresh();
     });
   
-    observer.observe(resultsList, {
+    observer.observe(searchRoot, {
       childList: true,
       subtree: true,
     });
