@@ -374,6 +374,8 @@ async function fetchAllAccessibleArticles() {
 async function applyTeamRestrictionLocks() {
   if (detectBrand() !== "team") return;
 
+  document.body.classList.add("fgc-restriction-locks-loading");
+
   try {
     const articles = await fetchAllAccessibleArticles();
 
