@@ -2268,9 +2268,10 @@ a.sign-in:hover{
 .article-body :not(pre) > code {
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.10);
+  font-size: 0.9em;
   color: inherit;
   border-radius: 3px;
-  padding: 0 5px;
+  padding: 1px 5px;
   margin: 0 2px;
 }
 .article-body pre {
@@ -2786,8 +2787,9 @@ a.sign-in:hover{
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.10);
   color: inherit;
+  font-size: 0.9em;
   border-radius: 3px;
-  padding: 0 5px;
+  padding: 1px 5px;
   margin: 0 2px;
 }
 .comment-body pre {
@@ -3431,8 +3433,9 @@ a.sign-in:hover{
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.10);
   color: inherit;
+  font-size: 0.9em;
   border-radius: 3px;
-  padding: 0 5px;
+  padding: 1px 5px;
   margin: 0 2px;
 }
 .post-body pre {
@@ -6251,8 +6254,9 @@ svg[data-garden-id='dropdowns.combobox.input_icon'] {
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.10);
   color: inherit;
+  font-size: 0.9em;
   border-radius: 3px;
-  padding: 0 5px;
+  padding: 1px 5px;
   margin: 0 2px;
 }
 .service-catalog-description pre {
