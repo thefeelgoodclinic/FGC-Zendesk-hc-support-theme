@@ -131,6 +131,25 @@
           </div>
         </section>
       {{/if}}
+
+	  <section class="featured-container fgc-categories">
+        <header class="featured-header">
+          <h2 class="featured-title">Browse by category</h2>
+        </header>
+        <ul class="fgc-category-grid">
+          {{#each categories}}
+            <li class="fgc-category-item">
+              <a href="{{url}}" class="fgc-category-link">
+                <span class="fgc-category-name">{{name}}</span>
+                {{#if description}}
+                  <span class="fgc-category-description">{{description}}</span>
+                {{/if}}
+              </a>
+            </li>
+          {{/each}}
+        </ul>
+      </section>	
+
     </section> {{!-- close .knowledge-base --}}
   
 
