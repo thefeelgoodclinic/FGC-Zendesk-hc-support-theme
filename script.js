@@ -721,32 +721,29 @@ async function applyTeamRestrictionLocks() {
           .querySelectorAll(".fgc-restricted-lock")
           .forEach((lock) => lock.remove());
 
-        if (
-          currentArticle &&
-          articleIsRestricted(currentArticle)
-        ) {
-          document.body.classList.add(
-            "fgc-current-article-restricted"
-          );
-        
-          /*
-           * Keep Zendesk's native article-page padlock attached
-           * to the final word of the title so it can never wrap
-           * onto a line by itself.
-           */
-          const nativeLock = articleTitle.querySelector(".icon-lock");
-        
-          if (
-            nativeLock &&
-            !nativeLock.closest(".fgc-lock-keep-together")
-          ) {
-            keepLockWithLastWord(articleTitle, nativeLock);
-          }
-        
-        } else {
-          articleTitle
-            .querySelectorAll(".icon-lock")
-            .forEach((lock) => lock.remove());
+         /*
+         * The padlock no longer sits in the title. Remove the native one
+         * and, for a restricted article, add the visibility marking to the
+         * meta row: lock + segment name ("Administration+").
+         */
+        articleTitle
+          .querySelectorAll(".icon-lock")
+          .forEach((lock) => lock.remove());
+
+        document
+          .querySelectorAll(".fgc-visibility")
+          .forEach((el) => el.remove());
+
+        const meta = document.querySelector(".article-header .article-meta");
+
+        if (currentArticle && articleIsRestricted(currentArticle) && meta) {
+          document.body.classList.add("fgc-current-article-restricted");
+
+          const mark = document.createElement("span");
+          mark.className = "meta-data fgc-visibility";
+          mark.setAttribute("title", restrictionTooltip(currentArticle));
+          mark.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect width="12" height="9" x="2" y="7" fill="currentColor" rx="1" ry="1"/><path fill="none" stroke="currentColor" d="M4.5 7.5V4a3.5 3.5 0 017 0v3.5"/></svg> ${restrictionLabel(currentArticle)}`;
+          meta.appendChild(mark);
         }
       }
     }
