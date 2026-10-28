@@ -313,7 +313,7 @@ const STANDARD_USER_SEGMENT_IDS = new Set([
 
 // Visibility marking. Ordered least → most restricted; "and above" is added for all but the last.
 const RESTRICTED_SEGMENT_ORDER = [12494697871887, 18147949727759, 18147908281871]; // Administration, Operations, Executive
-const SEGMENT_NAMES = { 12494697871887: "Administration", 18147949727759: "Operations", 18147908281871: "Executive" };
+const SEGMENT_NAMES = { 12494697871887: "Administration", 18147949727759: "Management", 18147908281871: "Executive" };
 let segmentNamesLoaded = null;
 
 function loadSegmentNames() {
