@@ -688,7 +688,7 @@ async function applyTeamRestrictionLocks() {
 
         if (!article || !articleIsRestricted(article)) return;
 
-        const lock = createRestrictionLock();
+        const lock = createRestrictionLock(restrictionTooltip(article));
         keepHomeLockWithLastWord(link, lock);
       });
 
@@ -876,7 +876,7 @@ function watchTeamSearchRestrictionLocks() {
 
             if (restricted) {
               if (!existingLock) {
-                const lock = createRestrictionLock();
+                const lock = createRestrictionLock(restrictionTooltip(matchingArticles.find(articleIsRestricted)));
                 keepSearchLockWithLastWord(title, lock);
               }
             } else if (existingLock) {
@@ -1209,7 +1209,8 @@ function watchTeamSearchRestrictionLocks() {
           <div class="article-inner">
             <h3 class="article-title">
               <a href="${article.html_url}">${article.title}</a>
-              ${articleIsRestricted(article) ? `
+              ${articleIsRestricted(article) ? createRestrictionLock(restrictionTooltip(article)).outerHTML : ""}
+              <!-- ${articleIsRestricted(article) ? `
                 <span class="fgc-restricted-lock" title="Restricted">
                   <svg xmlns="http://www.w3.org/2000/svg"
                        width="16"
@@ -1224,7 +1225,7 @@ function watchTeamSearchRestrictionLocks() {
                           d="M4.5 7.5V4a3.5 3.5 0 017 0v3.5"/>
                   </svg>
                 </span>
-              ` : ""}
+              ` : ""} -->
             </h3>
             <p class="article-description">${snippet}</p>
           </div>
