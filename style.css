@@ -6628,6 +6628,7 @@ body.fgc-current-article-restricted
 .fgc-visibility svg { vertical-align: baseline; margin-right: 4px; }   /* lock base on the text baseline; nudge with -1px if it sits high */
 
 @media (max-width: 767px) {
-  .article-header .article-meta { margin-top: 8px; }            /* air under the avatar */
-  .article-meta .fgc-visibility { display: block; margin-top: 6px; }   /* marking on its own line */
+  .article-header .article-author { flex-wrap: wrap; }            /* theme default: meta drops under the avatar */
+  .article-header .article-meta { flex-basis: 100%; margin-top: 10px; }
+  .article-meta .fgc-visibility { display: block; margin-top: 6px; }
 }
