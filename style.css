@@ -6621,6 +6621,7 @@ body.fgc-current-article-restricted
   .fgc-categories .article-item:nth-child(odd) { padding-right: 32px; }
   .fgc-categories .article-item:nth-child(even) { padding-left: 32px; }
   .fgc-categories .article-item:nth-child(odd):last-child { grid-column: 1 / -1; }
+  .fgc-categories .article-item:nth-child(odd):last-child .article-inner { max-width: calc(50% - 24px); }
 }
 
 /* v1.0 article page: visibility marking in the meta row */
