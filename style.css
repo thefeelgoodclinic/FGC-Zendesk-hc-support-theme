@@ -6626,3 +6626,8 @@ body.fgc-current-article-restricted
 /* v1.0 article page: visibility marking in the meta row */
 .fgc-visibility { white-space: nowrap; }   /* lock and words never split across a wrap on narrow screens */
 .fgc-visibility svg { vertical-align: baseline; margin-right: 4px; }   /* lock base on the text baseline; nudge with -1px if it sits high */
+
+@media (max-width: 767px) {
+  .article-header .article-meta { margin-top: 8px; }            /* air under the avatar */
+  .article-meta .fgc-visibility { display: block; margin-top: 6px; }   /* marking on its own line */
+}
