@@ -311,6 +311,38 @@ const STANDARD_USER_SEGMENT_IDS = new Set([
   1964387, // Agents and admins
 ]);
 
+// Visibility marking. Ordered least → most restricted; "and above" is added for all but the last.
+const RESTRICTED_SEGMENT_ORDER = [12494697871887, 18147949727759, 18147908281871]; // Administration, Operations, Executive
+const SEGMENT_NAMES = { 12494697871887: "Administration", 18147949727759: "Operations", 18147908281871: "Executive" };
+let segmentNamesLoaded = null;
+
+function loadSegmentNames() {
+  if (!segmentNamesLoaded) {
+    segmentNamesLoaded = fetch("/api/v2/help_center/user_segments/applicable.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { ((data && data.user_segments) || []).forEach((s) => { SEGMENT_NAMES[s.id] = s.name; }); })
+      .catch(() => {});
+  }
+  return segmentNamesLoaded;
+}
+
+function restrictionLabel(article) {               // short, on the page: "Administration+", "Executive"
+  if (!articleIsRestricted(article)) return "";
+  const id = article.user_segment_id;
+  const name = SEGMENT_NAMES[id] || "Restricted";
+  const i = RESTRICTED_SEGMENT_ORDER.indexOf(id);
+  const nested = i > -1 && i < RESTRICTED_SEGMENT_ORDER.length - 1;
+  return name + (nested ? "+" : "");
+}
+function restrictionTooltip(article) {             // long, for hover text: "Visible to Administration and above"
+  if (!articleIsRestricted(article)) return "";
+  const id = article.user_segment_id;
+  const name = SEGMENT_NAMES[id] || "a restricted group";
+  const i = RESTRICTED_SEGMENT_ORDER.indexOf(id);
+  const nested = i > -1 && i < RESTRICTED_SEGMENT_ORDER.length - 1;
+  return "Visible to " + name + (nested ? " and above" : "");
+}
+  
 function articleIsRestricted(article) {
   return (
     article &&
@@ -324,11 +356,12 @@ function getArticleIdFromUrl(url) {
   return match ? match[1] : null;
 }
 
-function createRestrictionLock() {
+function createRestrictionLock(label) {
+  const text = label || "Restricted";
   const wrapper = document.createElement("span");
   wrapper.className = "fgc-restricted-lock";
-  wrapper.setAttribute("title", "Restricted");
-  wrapper.setAttribute("aria-label", "Restricted");
+  wrapper.setAttribute("title", text);
+  wrapper.setAttribute("aria-label", text);
 
   wrapper.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg"
@@ -558,6 +591,7 @@ function keepSearchLockWithLastWord(titleElement, lockElement) {
 }
   
 async function fetchAllAccessibleArticles() {
+  await loadSegmentNames();
   const articles = [];
   let page = 1;
   let hasMore = true;
@@ -625,7 +659,7 @@ async function applyTeamRestrictionLocks() {
 
       if (!article || !articleIsRestricted(article)) return;
 
-      const lock = createRestrictionLock();
+      const lock = createRestrictionLock(restrictionTooltip(article));
       keepSectionLockWithLastWord(link, lock);
     });
 
