@@ -6627,8 +6627,9 @@ body.fgc-current-article-restricted
 .fgc-visibility { white-space: nowrap; }   /* lock and words never split across a wrap on narrow screens */
 .fgc-visibility svg { vertical-align: baseline; margin-right: 4px; }   /* lock base on the text baseline; nudge with -1px if it sits high */
 
-@media (max-width: 767px) {
-  .article-header .article-author { flex-wrap: wrap; }            /* theme default: meta drops under the avatar */
-  .article-header .article-meta { flex-basis: 100%; margin-top: 10px; }
-  .article-meta .fgc-visibility { display: block; margin-top: 6px; }
+/* Mobile/tablet: avatar on its own, meta line below, marking below that */
+@media (max-width: 1023px) {
+  .article-header .article-author .article-meta { display: block; margin-top: 10px; }
+  .article-header .article-meta .fgc-visibility { display: block; margin-top: 6px; }
+  .article-header .article-meta .meta-data:nth-last-child(2)::after { content: none; }  /* no stray dot before the marking */
 }
