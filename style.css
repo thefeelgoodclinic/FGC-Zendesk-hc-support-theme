@@ -6615,3 +6615,8 @@ body.fgc-current-article-restricted
   outline: 2px solid #BD96CE;
   outline-offset: 2px;
 }
+
+/* v1.0 home page: category grid in two columns on desktop */
+@media (min-width: 900px) {
+  .fgc-categories .articles-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+}
