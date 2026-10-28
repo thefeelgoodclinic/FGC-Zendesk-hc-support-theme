@@ -6341,8 +6341,8 @@ html {
 }
 
 /* Keep the whole split title behaving as one hover target */
-.article-list-item .fgc-section-title-group:hover .article-list-link,
-.article-list-item .fgc-section-title-group:hover .fgc-section-lock-tail-link {
+.article-list-item .fgc-section-title-group.fgc-link-hover .article-list-link,
+.article-list-item .fgc-section-title-group.fgc-link-hover .fgc-section-lock-tail-link {
   text-decoration: underline;
 }
 
@@ -6371,8 +6371,8 @@ html {
 }
 
 /* Treat both title fragments as one hover target */
-.featured-container .fgc-home-title-group:hover .article-title a,
-.featured-container .fgc-home-title-group:hover .fgc-home-lock-tail-link {
+.featured-container .fgc-home-title-group.fgc-link-hover .article-title a,
+.featured-container .fgc-home-title-group.fgc-link-hover .fgc-home-lock-tail-link {
   text-decoration: underline;
 }
 
@@ -6477,8 +6477,8 @@ body.fgc-current-article-restricted
 }
 
 /* Preserve normal title underline across both linked title fragments */
-.search-result-title:hover > a,
-.search-result-title:hover .fgc-search-lock-tail-link {
+.search-result-title.fgc-link-hover > a,
+.search-result-title.fgc-link-hover .fgc-search-lock-tail-link {
   text-decoration: underline;
 }
 
