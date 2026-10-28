@@ -6618,5 +6618,7 @@ body.fgc-current-article-restricted
 
 /* v1.0 home page: category grid in two columns on desktop */
 @media (min-width: 900px) {
-  .fgc-categories .articles-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .fgc-categories .articles-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 0; }
+  .fgc-categories .article-item:nth-child(odd) { padding-right: 32px; }
+  .fgc-categories .article-item:nth-child(even) { padding-left: 32px; }
 }
