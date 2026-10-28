@@ -6633,3 +6633,7 @@ body.fgc-current-article-restricted
   .article-header .article-meta .fgc-visibility { display: block; margin-top: 6px; }
   .article-header .article-meta .meta-data:nth-last-child(2)::after { content: none; }  /* no stray dot before the marking */
 }
+
+/* Article header meta row: spacing instead of dot separators */
+.article-header .article-meta .meta-data:not(:last-child)::after { content: none; }
+.article-header .article-meta .meta-data + .meta-data { margin-left: 18px; }
