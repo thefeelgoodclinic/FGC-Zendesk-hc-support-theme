@@ -456,6 +456,20 @@ function createRestrictionLock(label) {
  * This preserves normal title hover underlining while preventing
  * the padlock from wrapping onto a line by itself.
  */
+
+/**
+ * Marks a title group as hovered only while the pointer is over one of its
+ * link fragments, never the padlock, so CSS underlines both fragments
+ * together without the padlock joining in.
+ */
+  
+function linkHoverClass(container, links) {
+  links.forEach((a) => {
+    a.addEventListener("mouseenter", () => container.classList.add("fgc-link-hover"));
+    a.addEventListener("mouseleave", () => container.classList.remove("fgc-link-hover"));
+  });
+}
+  
 function keepSectionLockWithLastWord(link, lockElement) {
   if (!link || !lockElement) return;
 
@@ -491,6 +505,7 @@ function keepSectionLockWithLastWord(link, lockElement) {
   link.parentNode.insertBefore(group, link);
   group.appendChild(link);
   group.appendChild(tail);
+  linkHoverClass(group, [link, tailLink]);
 }
 
 /**
@@ -533,6 +548,7 @@ function keepHomeLockWithLastWord(link, lockElement) {
   link.parentNode.insertBefore(group, link);
   group.appendChild(link);
   group.appendChild(tail);
+  linkHoverClass(group, [link, tailLink]);
 }
   
 /**
@@ -588,6 +604,7 @@ function keepSearchLockWithLastWord(titleElement, lockElement) {
   wrapper.appendChild(lockElement);
 
   link.insertAdjacentElement("afterend", wrapper);
+  linkHoverClass(titleElement, [link, tailLink]);
 }
   
 async function fetchAllAccessibleArticles() {
