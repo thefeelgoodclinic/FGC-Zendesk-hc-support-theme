@@ -6371,8 +6371,7 @@ html {
 }
 
 /* Treat both title fragments as one hover target */
-.featured-container .fgc-home-title-group.fgc-link-hover .article-title a,
-.featured-container .fgc-home-title-group.fgc-link-hover .fgc-home-lock-tail-link {
+.featured-container .article-title .fgc-home-title-group.fgc-link-hover a {
   text-decoration: underline;
 }
 
